@@ -21,9 +21,14 @@ class InputError(ValueError):
 
 
 def safe_join(base: Path, rel: str) -> Path:
-    """Resolve `rel` under `base`, rejecting absolute paths and traversal."""
+    """Resolve `rel` under `base`, rejecting absolute paths and traversal.
+
+    Backslashes are treated as separators on every OS, so `..\\x` is rejected on Linux too."""
     if not rel or Path(rel).is_absolute() or rel.startswith(("/", "\\")) or ":" in rel:
         raise InputError(f"path must be relative: {rel!r}")
+    rel = rel.replace("\\", "/")
+    if ".." in rel.split("/"):
+        raise InputError(f"path escapes base directory: {rel!r}")
     base_r = base.resolve()
     p = (base_r / rel).resolve()
     if base_r != p and base_r not in p.parents:
