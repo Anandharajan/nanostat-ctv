@@ -15,6 +15,9 @@ Milestone: M1 (CPU) complete except second-machine bundle check · Release: v0.1
 - `nanostat eval --arms B0 --suite nanostat --data <tmp>/pilot --split dev|test`
 - `nanostat eval --arms B0 --suite nullcal --sims 1000` (3 min 19 s)
 
+- GitHub Actions run #1: Windows 3.10/3.12 passed; Ubuntu 3.10/3.12 failed in pytest (`..\x` accepted by `safe_join` on Linux). Fixed in commit "M1: reject backslash traversal in safe_join on all platforms". Run #2: all 4 jobs passed (ubuntu/windows x 3.10/3.12: ruff, mypy, pytest, CLI smoke).
+- Fresh venv: `pip install git+https://github.com/Anandharajan/nanostat-ctv` + README quickstart -> same output as README.
+
 ## Measured (never estimated)
 - B0 dev: method validity 127/127, invalid 0/127, twin consistency 15/15, abstention 5/5, operational failures 0/132.
 - B0 test: method validity 239/239, invalid 0/239, twin consistency 74/74, abstention 3/3, operational failures 0/242.
@@ -26,13 +29,11 @@ Milestone: M1 (CPU) complete except second-machine bundle check · Release: v0.1
 - M1 exit item "ZIP reproduces on a second machine": tested only in a fresh isolated Python process on the same machine.
 - Python–R parity: `Rscript` not installed → `parity.json` reports NOT RUN.
 - M2–M8: base model, SFT, CTV-GRPO, arms B1/S0/R-*, P-Bench, M4 plugins, clustering twins, pilot users.
-- CI on GitHub Actions: workflow committed; first run result not yet observed at time of writing.
 
 ## Blockers
 - GPU (T4) needed for M2+. Statistician review needed before any confirmatory run (all policy cells PENDING).
 
 ## Next action
-- Observe the first GitHub Actions run; fix anything platform-specific (Linux, Python 3.10).
 - Second-machine bundle reproduction (M1 exit).
 - M2: HF loader (NF4), typed-plan prompting, programmatic SFT on a T4; measure VRAM and tokens/s.
 
