@@ -1,0 +1,10 @@
+{
+  "roles": {
+    "y": "score",
+    "group": "section"
+  },
+  "group_order": [
+    "lecture",
+    "flipped"
+  ]
+}

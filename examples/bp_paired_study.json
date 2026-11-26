@@ -1,0 +1,12 @@
+{
+  "roles": {
+    "y": "sbp",
+    "group": "visit",
+    "pair_id": "patient_id"
+  },
+  "group_order": [
+    "baseline",
+    "week_8"
+  ],
+  "description": "The same patients were measured at baseline and at week 8."
+}
