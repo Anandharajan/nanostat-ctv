@@ -1,0 +1,13 @@
+# Experimental arms (SPEC §8). Status reflects v0.1: only B0 can run (CPU).
+arms:
+  B0:          {training: none, planner: rules, status: AVAILABLE}
+  B1:          {training: none, planner: base_1.5b_typed_plan, status: NOT RUN}
+  S0:          {training: programmatic_sft, status: NOT RUN}
+  R-F:         {training: sft+grpo, reward: fisher, status: NOT RUN}
+  R-A:         {training: sft+grpo, reward: admissible_set, status: NOT RUN}
+  R-AD:        {training: sft+grpo, reward: admissible_set, sampling: discordance, status: NOT RUN}
+  R-ADT:       {training: sft+grpo, reward: admissible_set, sampling: discordance, twins: true, status: NOT RUN}
+  R-CTV:       {training: sft+grpo, reward: admissible_set, sampling: discordance, twins: true, constraint: validity, status: NOT RUN}
+  R-CTV-DAPO:  {training: sft+dapo, optional: true, status: NOT RUN}
+primary_comparisons: [method_validity_rate, agent_level_fpr, twin_consistency_accuracy]
+non_inferiority: {metric: pbench_strict_pass1, margin_pp: -3}

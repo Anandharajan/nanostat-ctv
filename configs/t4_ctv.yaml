@@ -1,0 +1,20 @@
+# T4 configuration for SFT and CTV-GRPO (SPEC §7.8). NOT RUN: GPU stages start at M2.
+model_id: Qwen/Qwen2.5-Coder-1.5B-Instruct
+model_revision: PIN_AFTER_SMOKE
+quant: {type: nf4, double_quant: true, compute_dtype: float16}
+lora: {r: 8, alpha: 16, dropout: 0.05, targets: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]}
+sft: {max_seq: 1024, micro_batch: 1, grad_accum: 8, lr: 2.0e-4, epochs: 1, examples: 3000}
+grpo:
+  group_size: 2            # per twin side; raise to 4 only after profiling
+  pairs_per_update: 4
+  max_prompt_tokens: 1024
+  max_new_tokens: 256
+  lr: 5.0e-6
+  updates_probe: 50
+  updates_pilot: 300
+  checkpoint_every: 25
+  kl_beta: trl_default
+reward: {w_method: 0.45, w_p: 0.35, w_concl: 0.10, w_assume: 0.10, invalid_penalty: -0.2, eta_twin: 0.2, tau_twin: 0.8}
+constraint: {alpha: 0.05, eps: 0.02, eta_lambda: 0.05, lambda_max: 0.5, ema: 0.9}
+stop_rules: {max_reserved_gib: 14, on_oom: [reduce_new_tokens_128, group_size_2, abort_and_report]}
+seeds: [42, 123, 456]

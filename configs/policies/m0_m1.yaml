@@ -1,0 +1,174 @@
+# Admissible-set policy registry for M0/M1 methods (SPEC §6.2).
+# Every cell is reviewed_by: PENDING -> usable in pilot runs only, never confirmatory runs.
+# The first method of the first estimand option is the registry's preferred method.
+
+- cell: {design: independent_two_group, outcome: continuous, perturbation: none}
+  estimand_options:
+    mean_difference: [welch_t, student_t]
+    location_shift: [mann_whitney]
+  invalid:
+    - {method: paired_t, reason: design_mismatch_no_pairing}
+    - {method: wilcoxon_signed_rank, reason: design_mismatch_no_pairing}
+    - {method: chi2_independence, reason: outcome_type_mismatch}
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: independent_two_group, outcome: continuous, perturbation: unequal_variance}
+  estimand_options:
+    mean_difference: [welch_t]
+  invalid:
+    - {method: student_t, reason: pooled_variance_under_heteroscedasticity}
+    - {method: paired_t, reason: design_mismatch_no_pairing}
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: independent_two_group, outcome: continuous, perturbation: heavy_outliers}
+  estimand_options:
+    location_shift: [mann_whitney, yuen_trimmed_t]
+  invalid:
+    - {method: student_t, reason: outlier_driven_inference}
+    - {method: welch_t, reason: outlier_driven_inference}
+    - {method: paired_t, reason: design_mismatch_no_pairing}
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: independent_two_group, outcome: continuous, perturbation: skewed}
+  estimand_options:
+    location_shift: [mann_whitney, yuen_trimmed_t]
+  invalid:
+    - {method: student_t, reason: non_normal_pooled_variance}
+    - {method: paired_t, reason: design_mismatch_no_pairing}
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: independent_two_group, outcome: binary, perturbation: none}
+  estimand_options:
+    association: [chi2_independence, fisher_exact]
+  invalid:
+    - {method: student_t, reason: outcome_type_mismatch}
+    - {method: welch_t, reason: outcome_type_mismatch}
+    - {method: mann_whitney, reason: outcome_type_mismatch}
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: independent_two_group, outcome: binary, perturbation: small_expected_counts}
+  estimand_options:
+    association: [fisher_exact]
+  invalid:
+    - {method: chi2_independence, reason: expected_counts_below_5}
+    - {method: student_t, reason: outcome_type_mismatch}
+    - {method: welch_t, reason: outcome_type_mismatch}
+    - {method: mann_whitney, reason: outcome_type_mismatch}
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: paired, outcome: continuous, perturbation: none}
+  estimand_options:
+    mean_difference_paired: [paired_t]
+    location_shift: [wilcoxon_signed_rank]
+  invalid:
+    - {method: welch_t, reason: design_mismatch_ignores_pairing}
+    - {method: student_t, reason: design_mismatch_ignores_pairing}
+    - {method: mann_whitney, reason: design_mismatch_ignores_pairing}
+  clarify_if: [pair_id_missing]
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: paired, outcome: continuous, perturbation: heavy_outliers}
+  estimand_options:
+    location_shift: [wilcoxon_signed_rank]
+  invalid:
+    - {method: paired_t, reason: outlier_driven_inference}
+    - {method: welch_t, reason: design_mismatch_ignores_pairing}
+    - {method: student_t, reason: design_mismatch_ignores_pairing}
+    - {method: mann_whitney, reason: design_mismatch_ignores_pairing}
+  clarify_if: [pair_id_missing]
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: paired, outcome: continuous, perturbation: skewed}
+  estimand_options:
+    location_shift: [wilcoxon_signed_rank]
+  invalid:
+    - {method: welch_t, reason: design_mismatch_ignores_pairing}
+    - {method: student_t, reason: design_mismatch_ignores_pairing}
+    - {method: mann_whitney, reason: design_mismatch_ignores_pairing}
+  clarify_if: [pair_id_missing]
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: correlation, outcome: continuous, perturbation: none}
+  estimand_options:
+    correlation: [pearson]
+    rank_correlation: [spearman]
+  invalid: []
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: correlation, outcome: continuous, perturbation: heavy_outliers}
+  estimand_options:
+    rank_correlation: [spearman]
+  invalid:
+    - {method: pearson, reason: outlier_driven_inference}
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: correlation, outcome: continuous, perturbation: skewed}
+  estimand_options:
+    rank_correlation: [spearman]
+  invalid: []
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: k_group, outcome: continuous, perturbation: none}
+  estimand_options:
+    group_means_equal: [anova_oneway]
+    group_distributions_equal: [kruskal_wallis]
+  invalid: []
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: k_group, outcome: continuous, perturbation: heavy_outliers}
+  estimand_options:
+    group_distributions_equal: [kruskal_wallis]
+  invalid:
+    - {method: anova_oneway, reason: outlier_driven_inference}
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: k_group, outcome: continuous, perturbation: skewed}
+  estimand_options:
+    group_distributions_equal: [kruskal_wallis]
+  invalid:
+    - {method: anova_oneway, reason: non_normal_small_sample}
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: k_group, outcome: continuous, perturbation: unequal_variance}
+  estimand_options:
+    group_distributions_equal: [kruskal_wallis]
+  invalid:
+    - {method: anova_oneway, reason: pooled_variance_under_heteroscedasticity}
+  clarify_if: []
+  reviewed_by: PENDING
+  version: 0.1.0
+
+- cell: {design: one_sample, outcome: binary, perturbation: none}
+  estimand_options:
+    proportion: [binomial_test]
+  invalid: []
+  clarify_if: [p0_missing]
+  reviewed_by: PENDING
+  version: 0.1.0
