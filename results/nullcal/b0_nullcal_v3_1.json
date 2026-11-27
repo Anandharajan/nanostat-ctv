@@ -1,0 +1,778 @@
+[
+  {
+    "family": "two_group",
+    "perturbation": "none",
+    "n_regime": "small",
+    "sims": 1000,
+    "agent_executed": 1000,
+    "agent_fpr": {
+      "k": 63,
+      "n": 1000,
+      "rate": 0.063,
+      "ci95": [
+        0.048746927556580555,
+        0.0798880418733545
+      ]
+    },
+    "agent_raw_reject": {
+      "k": 63,
+      "n": 1000,
+      "rate": 0.063,
+      "ci95": [
+        0.048746927556580555,
+        0.0798880418733545
+      ]
+    },
+    "agent_methods": {
+      "welch_t": 881,
+      "permutation_test": 119
+    },
+    "fixed": {
+      "welch_t": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 63,
+          "n": 1000,
+          "rate": 0.063,
+          "ci95": [
+            0.048746927556580555,
+            0.0798880418733545
+          ]
+        }
+      },
+      "student_t": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 63,
+          "n": 1000,
+          "rate": 0.063,
+          "ci95": [
+            0.048746927556580555,
+            0.0798880418733545
+          ]
+        }
+      },
+      "mann_whitney": {
+        "hypothesis": "distribution_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 54,
+          "n": 1000,
+          "rate": 0.054,
+          "ci95": [
+            0.0408233511256307,
+            0.06987400557706731
+          ]
+        }
+      },
+      "permutation_test": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 63,
+          "n": 1000,
+          "rate": 0.063,
+          "ci95": [
+            0.048746927556580555,
+            0.0798880418733545
+          ]
+        }
+      },
+      "yuen_trimmed_t": {
+        "hypothesis": "trimmed_mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 52,
+          "n": 1000,
+          "rate": 0.052,
+          "ci95": [
+            0.0390765349439805,
+            0.06763501405050731
+          ]
+        }
+      }
+    }
+  },
+  {
+    "family": "two_group",
+    "perturbation": "outliers",
+    "n_regime": "medium",
+    "sims": 1000,
+    "agent_executed": 1000,
+    "agent_fpr": {
+      "k": 53,
+      "n": 1000,
+      "rate": 0.053,
+      "ci95": [
+        0.03994925236001938,
+        0.06875518328996322
+      ]
+    },
+    "agent_raw_reject": {
+      "k": 53,
+      "n": 1000,
+      "rate": 0.053,
+      "ci95": [
+        0.03994925236001938,
+        0.06875518328996322
+      ]
+    },
+    "agent_methods": {
+      "permutation_test": 1000
+    },
+    "fixed": {
+      "welch_t": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 52,
+          "n": 1000,
+          "rate": 0.052,
+          "ci95": [
+            0.0390765349439805,
+            0.06763501405050731
+          ]
+        }
+      },
+      "student_t": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 53,
+          "n": 1000,
+          "rate": 0.053,
+          "ci95": [
+            0.03994925236001938,
+            0.06875518328996322
+          ]
+        }
+      },
+      "mann_whitney": {
+        "hypothesis": "distribution_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 45,
+          "n": 1000,
+          "rate": 0.045,
+          "ci95": [
+            0.033009625431148756,
+            0.059752832693407795
+          ]
+        }
+      },
+      "permutation_test": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 53,
+          "n": 1000,
+          "rate": 0.053,
+          "ci95": [
+            0.03994925236001938,
+            0.06875518328996322
+          ]
+        }
+      },
+      "yuen_trimmed_t": {
+        "hypothesis": "trimmed_mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 43,
+          "n": 1000,
+          "rate": 0.043,
+          "ci95": [
+            0.0312911704560926,
+            0.057486257961972334
+          ]
+        }
+      }
+    }
+  },
+  {
+    "family": "two_group",
+    "perturbation": "skewed",
+    "n_regime": "small",
+    "sims": 1000,
+    "agent_executed": 1000,
+    "agent_fpr": {
+      "k": 51,
+      "n": 1000,
+      "rate": 0.051,
+      "ci95": [
+        0.03820523677468615,
+        0.06651346159493483
+      ]
+    },
+    "agent_raw_reject": {
+      "k": 51,
+      "n": 1000,
+      "rate": 0.051,
+      "ci95": [
+        0.03820523677468615,
+        0.06651346159493483
+      ]
+    },
+    "agent_methods": {
+      "permutation_test": 934,
+      "welch_t": 66
+    },
+    "fixed": {
+      "welch_t": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 37,
+          "n": 1000,
+          "rate": 0.037,
+          "ci95": [
+            0.026182708843737336,
+            0.05064112305992485
+          ]
+        }
+      },
+      "student_t": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 40,
+          "n": 1000,
+          "rate": 0.04,
+          "ci95": [
+            0.028727625285890793,
+            0.0540726968193685
+          ]
+        }
+      },
+      "mann_whitney": {
+        "hypothesis": "distribution_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 46,
+          "n": 1000,
+          "rate": 0.046,
+          "ci95": [
+            0.033871498547677924,
+            0.060883552713742635
+          ]
+        }
+      },
+      "permutation_test": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 51,
+          "n": 1000,
+          "rate": 0.051,
+          "ci95": [
+            0.03820523677468615,
+            0.06651346159493483
+          ]
+        }
+      },
+      "yuen_trimmed_t": {
+        "hypothesis": "trimmed_mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 37,
+          "n": 1000,
+          "rate": 0.037,
+          "ci95": [
+            0.026182708843737336,
+            0.05064112305992485
+          ]
+        }
+      }
+    }
+  },
+  {
+    "family": "two_group",
+    "perturbation": "unequal_variance",
+    "n_regime": "small",
+    "sims": 1000,
+    "agent_executed": 1000,
+    "agent_fpr": {
+      "k": 48,
+      "n": 1000,
+      "rate": 0.048,
+      "ci95": [
+        0.03560026534288328,
+        0.06314011540150924
+      ]
+    },
+    "agent_raw_reject": {
+      "k": 48,
+      "n": 1000,
+      "rate": 0.048,
+      "ci95": [
+        0.03560026534288328,
+        0.06314011540150924
+      ]
+    },
+    "agent_methods": {
+      "welch_t": 921,
+      "permutation_test": 79
+    },
+    "fixed": {
+      "welch_t": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 37,
+          "n": 1000,
+          "rate": 0.037,
+          "ci95": [
+            0.026182708843737336,
+            0.05064112305992485
+          ]
+        }
+      },
+      "student_t": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 141,
+          "n": 1000,
+          "rate": 0.141,
+          "ci95": [
+            0.12001151279686956,
+            0.1641265589516086
+          ]
+        }
+      },
+      "mann_whitney": {
+        "hypothesis": "distribution_equal",
+        "null_true": false,
+        "fpr": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": [
+            NaN,
+            NaN
+          ]
+        }
+      },
+      "permutation_test": {
+        "hypothesis": "mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 145,
+          "n": 1000,
+          "rate": 0.145,
+          "ci95": [
+            0.12374721727175494,
+            0.1683663220919312
+          ]
+        }
+      },
+      "yuen_trimmed_t": {
+        "hypothesis": "trimmed_mean_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 45,
+          "n": 1000,
+          "rate": 0.045,
+          "ci95": [
+            0.033009625431148756,
+            0.059752832693407795
+          ]
+        }
+      }
+    }
+  },
+  {
+    "family": "paired",
+    "perturbation": "none",
+    "n_regime": "small",
+    "sims": 1000,
+    "agent_executed": 1000,
+    "agent_fpr": {
+      "k": 48,
+      "n": 1000,
+      "rate": 0.048,
+      "ci95": [
+        0.03560026534288328,
+        0.06314011540150924
+      ]
+    },
+    "agent_raw_reject": {
+      "k": 48,
+      "n": 1000,
+      "rate": 0.048,
+      "ci95": [
+        0.03560026534288328,
+        0.06314011540150924
+      ]
+    },
+    "agent_methods": {
+      "paired_t": 940,
+      "permutation_test": 60
+    },
+    "fixed": {
+      "paired_t": {
+        "hypothesis": "mean_diff_zero",
+        "null_true": true,
+        "fpr": {
+          "k": 48,
+          "n": 1000,
+          "rate": 0.048,
+          "ci95": [
+            0.03560026534288328,
+            0.06314011540150924
+          ]
+        }
+      },
+      "wilcoxon_signed_rank": {
+        "hypothesis": "symmetric_about_zero",
+        "null_true": true,
+        "fpr": {
+          "k": 41,
+          "n": 1000,
+          "rate": 0.041,
+          "ci95": [
+            0.029580168534036118,
+            0.055212459315299285
+          ]
+        }
+      },
+      "permutation_test": {
+        "hypothesis": "mean_diff_zero",
+        "null_true": true,
+        "fpr": {
+          "k": 48,
+          "n": 1000,
+          "rate": 0.048,
+          "ci95": [
+            0.03560026534288328,
+            0.06314011540150924
+          ]
+        }
+      }
+    }
+  },
+  {
+    "family": "paired",
+    "perturbation": "outliers",
+    "n_regime": "medium",
+    "sims": 1000,
+    "agent_executed": 1000,
+    "agent_fpr": {
+      "k": 52,
+      "n": 1000,
+      "rate": 0.052,
+      "ci95": [
+        0.0390765349439805,
+        0.06763501405050731
+      ]
+    },
+    "agent_raw_reject": {
+      "k": 52,
+      "n": 1000,
+      "rate": 0.052,
+      "ci95": [
+        0.0390765349439805,
+        0.06763501405050731
+      ]
+    },
+    "agent_methods": {
+      "permutation_test": 1000
+    },
+    "fixed": {
+      "paired_t": {
+        "hypothesis": "mean_diff_zero",
+        "null_true": true,
+        "fpr": {
+          "k": 38,
+          "n": 1000,
+          "rate": 0.038,
+          "ci95": [
+            0.027028815982983928,
+            0.05178710362196412
+          ]
+        }
+      },
+      "wilcoxon_signed_rank": {
+        "hypothesis": "symmetric_about_zero",
+        "null_true": true,
+        "fpr": {
+          "k": 55,
+          "n": 1000,
+          "rate": 0.055,
+          "ci95": [
+            0.04169879507953599,
+            0.07099151554205749
+          ]
+        }
+      },
+      "permutation_test": {
+        "hypothesis": "mean_diff_zero",
+        "null_true": true,
+        "fpr": {
+          "k": 52,
+          "n": 1000,
+          "rate": 0.052,
+          "ci95": [
+            0.0390765349439805,
+            0.06763501405050731
+          ]
+        }
+      }
+    }
+  },
+  {
+    "family": "correlation",
+    "perturbation": "none",
+    "n_regime": "medium",
+    "sims": 1000,
+    "agent_executed": 1000,
+    "agent_fpr": {
+      "k": 43,
+      "n": 1000,
+      "rate": 0.043,
+      "ci95": [
+        0.0312911704560926,
+        0.057486257961972334
+      ]
+    },
+    "agent_raw_reject": {
+      "k": 43,
+      "n": 1000,
+      "rate": 0.043,
+      "ci95": [
+        0.0312911704560926,
+        0.057486257961972334
+      ]
+    },
+    "agent_methods": {
+      "pearson": 985,
+      "spearman": 10,
+      "permutation_test": 5
+    },
+    "fixed": {
+      "pearson": {
+        "hypothesis": "rho_zero",
+        "null_true": true,
+        "fpr": {
+          "k": 43,
+          "n": 1000,
+          "rate": 0.043,
+          "ci95": [
+            0.0312911704560926,
+            0.057486257961972334
+          ]
+        }
+      },
+      "spearman": {
+        "hypothesis": "independence",
+        "null_true": true,
+        "fpr": {
+          "k": 51,
+          "n": 1000,
+          "rate": 0.051,
+          "ci95": [
+            0.03820523677468615,
+            0.06651346159493483
+          ]
+        }
+      },
+      "permutation_test": {
+        "hypothesis": "rho_zero",
+        "null_true": true,
+        "fpr": {
+          "k": 44,
+          "n": 1000,
+          "rate": 0.044,
+          "ci95": [
+            0.032149497010871435,
+            0.05862041920633091
+          ]
+        }
+      }
+    }
+  },
+  {
+    "family": "correlation",
+    "perturbation": "outliers",
+    "n_regime": "medium",
+    "sims": 1000,
+    "agent_executed": 1000,
+    "agent_fpr": {
+      "k": 0,
+      "n": 0,
+      "rate": null,
+      "ci95": [
+        NaN,
+        NaN
+      ]
+    },
+    "agent_raw_reject": {
+      "k": 72,
+      "n": 1000,
+      "rate": 0.072,
+      "ci95": [
+        0.05675868755456172,
+        0.08981574917535082
+      ]
+    },
+    "agent_methods": {
+      "spearman": 1000
+    },
+    "fixed": {
+      "pearson": {
+        "hypothesis": "rho_zero",
+        "null_true": true,
+        "fpr": {
+          "k": 488,
+          "n": 1000,
+          "rate": 0.488,
+          "ci95": [
+            0.45659349464917487,
+            0.5194773407497
+          ]
+        }
+      },
+      "spearman": {
+        "hypothesis": "independence",
+        "null_true": false,
+        "fpr": {
+          "k": 0,
+          "n": 0,
+          "rate": null,
+          "ci95": [
+            NaN,
+            NaN
+          ]
+        }
+      },
+      "permutation_test": {
+        "hypothesis": "rho_zero",
+        "null_true": true,
+        "fpr": {
+          "k": 465,
+          "n": 1000,
+          "rate": 0.465,
+          "ci95": [
+            0.4337283068369779,
+            0.4964783056269997
+          ]
+        }
+      }
+    }
+  },
+  {
+    "family": "k_group",
+    "perturbation": "skewed",
+    "n_regime": "small",
+    "sims": 1000,
+    "agent_executed": 995,
+    "agent_fpr": {
+      "k": 28,
+      "n": 995,
+      "rate": 0.02814070351758794,
+      "ci95": [
+        0.01877898162954405,
+        0.04041569165114383
+      ]
+    },
+    "agent_raw_reject": {
+      "k": 28,
+      "n": 995,
+      "rate": 0.02814070351758794,
+      "ci95": [
+        0.01877898162954405,
+        0.04041569165114383
+      ]
+    },
+    "agent_methods": {
+      "kruskal_wallis": 988,
+      "anova_oneway": 7
+    },
+    "fixed": {
+      "anova_oneway": {
+        "hypothesis": "means_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 33,
+          "n": 1000,
+          "rate": 0.033,
+          "ci95": [
+            0.02282238334945957,
+            0.046033981817023194
+          ]
+        }
+      },
+      "kruskal_wallis": {
+        "hypothesis": "distributions_equal",
+        "null_true": true,
+        "fpr": {
+          "k": 29,
+          "n": 1000,
+          "rate": 0.029,
+          "ci95": [
+            0.01950593732438462,
+            0.041384719116401916
+          ]
+        }
+      }
+    }
+  },
+  {
+    "family": "binary_two_group",
+    "perturbation": "small_counts",
+    "n_regime": "small",
+    "sims": 1000,
+    "agent_executed": 948,
+    "agent_fpr": {
+      "k": 8,
+      "n": 948,
+      "rate": 0.008438818565400843,
+      "ci95": [
+        0.003650120614842185,
+        0.01655980819336953
+      ]
+    },
+    "agent_raw_reject": {
+      "k": 8,
+      "n": 948,
+      "rate": 0.008438818565400843,
+      "ci95": [
+        0.003650120614842185,
+        0.01655980819336953
+      ]
+    },
+    "agent_methods": {
+      "fisher_exact": 946,
+      "chi2_independence": 2
+    },
+    "fixed": {
+      "chi2_independence": {
+        "hypothesis": "independence",
+        "null_true": true,
+        "fpr": {
+          "k": 20,
+          "n": 948,
+          "rate": 0.02109704641350211,
+          "ci95": [
+            0.012933097350891657,
+            0.03239534568955579
+          ]
+        }
+      },
+      "fisher_exact": {
+        "hypothesis": "independence",
+        "null_true": true,
+        "fpr": {
+          "k": 8,
+          "n": 948,
+          "rate": 0.008438818565400843,
+          "ci95": [
+            0.003650120614842185,
+            0.01655980819336953
+          ]
+        }
+      }
+    }
+  }
+]

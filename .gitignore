@@ -15,4 +15,8 @@ data/
 nanostat_runs/
 results/*
 !results/.gitkeep
+!results/nullcal/
+!results/ablation_cpu/
+!results/b0_dev.json
+!results/b0_test.json
 *.zip
