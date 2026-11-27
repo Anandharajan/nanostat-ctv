@@ -99,16 +99,103 @@ def test_forbids_filtering_on_outcome(two_group):
     assert any(e.startswith("forbidden") for e in rep.errors)
 
 
-def test_marks_invalid_method_under_outliers(two_group):
+def _outlier_df(two_group):
     df = two_group.copy()
-    df.loc[df.arm == "treatment", "sbp"] = df.loc[df.arm == "treatment", "sbp"].to_numpy()
     df.loc[df.index[-1], "sbp"] = 400.0
     df.loc[df.index[-2], "sbp"] = 420.0
-    p = _plan(method="student_t")
-    rep = verify(p, df, profile(df), TWO_STUDY, "Is there a difference in sbp between control and treatment?")
+    return df
+
+
+def test_invalid_method_rejected_in_confirmatory_mode(two_group):
+    df = _outlier_df(two_group)
+    q = "Is there a difference in sbp between control and treatment?"
+    rep = verify(_plan(method="student_t"), df, profile(df), TWO_STUDY, q)
+    assert not rep.ok
+    assert any(e.startswith("invalid_method:student_t:outlier_driven_inference") for e in rep.errors)
+
+
+def test_invalid_method_runs_only_in_diagnostic_mode_without_decision(two_group):
+    from nanostat.controller import run_analysis
+    from nanostat.planner import LLMPlanner
+
+    df = _outlier_df(two_group)
+    q = "Is there a difference in sbp between control and treatment?"
+    rep = verify(_plan(method="student_t"), df, profile(df), TWO_STUDY, q, mode="diagnostic")
+    assert rep.ok and rep.method_status.value == "invalid"
+    plan = _plan(method="student_t").model_dump_json()
+    rec = run_analysis(q, TWO_STUDY, df, planner=LLMPlanner(lambda _p: plan), mode="diagnostic")
+    assert rec.result.p_value is not None and rec.result.decision is None and not rec.result.confirmatory
+    rec2 = run_analysis(q, TWO_STUDY, df, planner=LLMPlanner(lambda _p: plan))
+    assert rec2.result.action.value == "abstain" and rec2.result.reason_code.value == "no_admissible_method"
+
+
+def test_estimand_mismatch_rejected_in_confirmatory_mode(two_group):
+    q = "Is the typical sbp different between control and treatment?"
+    rep = verify(_plan(method="welch_t"), two_group, profile(two_group), TWO_STUDY, q)
+    assert not rep.ok and any(e.startswith("invalid_method:welch_t:estimand_mismatch") for e in rep.errors)
+
+
+def test_estimand_lock_mean_vs_location(two_group):
+    q_mean = "Is the mean sbp different between control and treatment?"
+    rep = verify(_plan(method="mann_whitney"), two_group, profile(two_group), TWO_STUDY, q_mean)
+    assert not rep.ok
+    rep = verify(_plan(method="welch_t", estimand="mean_difference"), two_group, profile(two_group), TWO_STUDY, q_mean)
+    assert rep.ok and rep.hypothesis == "mean_equal"
+    rep = verify(_plan(method="welch_t", estimand="location_shift"), two_group, profile(two_group), TWO_STUDY, q_mean)
+    assert not rep.ok and any(e.startswith("method_estimand_mismatch") for e in rep.errors)
+
+
+def test_protocol_fields_are_locked(two_group):
+    q = "Is there a difference in sbp between control and treatment?"
+    for extra in ({"alpha": 0.1}, {"params": {"p0": 0.5}}, {"alternative": "less"}):
+        rep = verify(_plan(**extra), two_group, profile(two_group), TWO_STUDY, q)
+        assert not rep.ok, extra
+    rep = verify(_plan(alpha=0.05), two_group, profile(two_group), TWO_STUDY, q)  # restating is fine
     assert rep.ok
-    assert rep.method_status.value == "invalid"
-    assert rep.status_reason == "outlier_driven_inference"
+
+
+def test_gate2_trimming_changes_estimand(two_group):
+    q = "Is the mean sbp different between control and treatment?"
+    p = _plan(preprocess=[{"op": "trim", "column": "sbp", "p": 0.1}])
+    rep = verify(p, two_group, profile(two_group), TWO_STUDY, q)
+    assert any(e.startswith("estimand_changed_by_preprocessing") for e in rep.errors)
+
+
+def test_gate2_filter_changes_population(two_group):
+    q = "Is there a difference in sbp between control and treatment?"
+    p = _plan(preprocess=[{"op": "filter", "column": "pid", "cmp": "<", "value": 30}])
+    rep = verify(p, two_group, profile(two_group), TWO_STUDY, q)
+    assert any(e.startswith("protocol_violation:population") for e in rep.errors)
+    open_study = TWO_STUDY.model_copy(update={"allow_population_filters": True})
+    rep = verify(p, two_group, profile(two_group), open_study, q)
+    assert rep.ok and rep.analysed is not None and len(rep.analysed) < len(two_group)
+    assert rep.analysed_sha256 is not None
+
+
+def test_gate2_recode_breaking_pairing(paired_long):
+    q = "Did the score increase from pre to post?"
+    cols = {"y": "score", "group": "time", "pair_id": "id"}
+    # recoding ids on BOTH timepoints keeps pairing intact
+    ok_map = {str(i): str(1000 + i) for i in range(100, 124)}
+    p = _plan(
+        design="paired",
+        method="paired_t",
+        columns=cols,
+        alternative="greater",
+        preprocess=[{"op": "recode", "column": "id", "mapping": ok_map}],
+    )
+    assert verify(p, paired_long, profile(paired_long), PAIRED_STUDY, q).ok
+    # collapsing all ids to one value breaks pairing in the analysed rows -> gate 2 rejects
+    bad_map = {str(i): "same" for i in range(100, 124)}
+    p2 = _plan(
+        design="paired",
+        method="paired_t",
+        columns=cols,
+        alternative="greater",
+        preprocess=[{"op": "recode", "column": "id", "mapping": bad_map}],
+    )
+    rep2 = verify(p2, paired_long, profile(paired_long), PAIRED_STUDY, q)
+    assert not rep2.ok
 
 
 def test_plan_schema_is_strict():

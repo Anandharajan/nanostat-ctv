@@ -176,5 +176,50 @@ def test_every_registered_tool_has_fixture_coverage():
         "chi2_independence",
         "fisher_exact",
         "binomial_test",
+        "permutation_test",
     }
     assert set(REGISTRY) == covered
+
+
+@pytest.mark.parametrize("i", range(5))
+def test_permutation_exact_two_group_paired_correlation(i):
+    rng = np.random.default_rng(SEEDS[i])
+    alt = ALTS[i]
+    a, b = rng.normal(0.8, 1, 5), rng.normal(0, 1, 4)
+    df = pd.DataFrame({"g": ["ctl"] * 4 + ["trt"] * 5, "y": np.r_[b, a]})
+    out = get_tool("permutation_test").run(df, ctx(alt, y="y", group="g"))
+    stat, p = ref.perm_two_exact(a, b, alt)
+    assert out.extra["exact"] and close(out.statistic, stat) and close(out.p_value, p)
+
+    pre = rng.normal(10, 2, 8)
+    post = pre + rng.normal(0.5, 1, 8)
+    wide = pd.DataFrame({"pre": pre, "post": post})
+    out = get_tool("permutation_test").run(wide, ctx(alt, y1="pre", y2="post"))
+    stat, p = ref.perm_paired_exact(list(post - pre), alt)
+    assert out.extra["exact"] and close(out.statistic, stat) and close(out.p_value, p)
+
+    x = rng.normal(size=6)
+    y = 0.6 * x + rng.normal(size=6)
+    out = get_tool("permutation_test").run(pd.DataFrame({"x": x, "y": y}), ctx(alt, x="x", y="y"))
+    stat, p = ref.perm_corr_exact(list(x), list(y), alt)
+    assert out.extra["exact"] and close(out.statistic, stat) and close(out.p_value, p)
+
+
+def test_permutation_monte_carlo_accuracy_and_determinism():
+    df, a, b = two_group_df(SEEDS[0])
+    t = get_tool("permutation_test")
+    o1 = t.run(df, ctx("two-sided", y="y", group="g"))
+    o2 = t.run(df, ctx("two-sided", y="y", group="g"))
+    assert not o1.extra["exact"] and o1.p_value == o2.p_value  # seeded -> reproducible
+    # independent high-precision Monte Carlo reference (different generator, 200k permutations)
+    rng = np.random.default_rng(999)
+    pooled, na = np.r_[a, b], len(a)
+    obs = a.mean() - b.mean()
+    hits = 0
+    for _ in range(20):
+        idx = np.argsort(rng.random((10_000, len(pooled))), axis=1)[:, :na]
+        sa = pooled[idx].sum(axis=1)
+        hits += int((np.abs(sa / na - (pooled.sum() - sa) / len(b)) >= abs(obs) - 1e-12).sum())
+    p_ref = hits / 200_000
+    se = np.sqrt(max(p_ref * (1 - p_ref), 1e-4) / 9_999)
+    assert abs(o1.p_value - p_ref) < 4 * se + 1e-4

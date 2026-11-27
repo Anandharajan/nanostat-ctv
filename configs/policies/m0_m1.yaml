@@ -1,49 +1,63 @@
-# Admissible-set policy registry for M0/M1 methods (SPEC §6.2).
-# Every cell is reviewed_by: PENDING -> usable in pilot runs only, never confirmatory runs.
-# The first method of the first estimand option is the registry's preferred method.
+# Estimand-keyed admissible-set policy registry for M0/M1 methods (SPEC v3.1 §2.3).
+#
+# A(x, e) = estimand_options[e] for the estimands the protocol allows (all estimands when the
+# protocol does not lock one). B(x, e) = `invalid` plus, when the estimand is locked, every method
+# admissible only for another estimand (reason: estimand_mismatch). Methods in neither set are
+# "unknown" and are rejected in confirmatory mode.
+#
+# Every cell is reviewed_by: PENDING -> pilot use only, never confirmatory runs.
+# Within an estimand the first method is the registry's preferred (conventional) method.
 
 - cell: {design: independent_two_group, outcome: continuous, perturbation: none}
   estimand_options:
-    mean_difference: [welch_t, student_t]
+    mean_difference: [welch_t, student_t, permutation_test]
     location_shift: [mann_whitney]
+    trimmed_mean_difference: [yuen_trimmed_t]
   invalid:
     - {method: paired_t, reason: design_mismatch_no_pairing}
     - {method: wilcoxon_signed_rank, reason: design_mismatch_no_pairing}
     - {method: chi2_independence, reason: outcome_type_mismatch}
-  clarify_if: []
+    - {method: fisher_exact, reason: outcome_type_mismatch}
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: independent_two_group, outcome: continuous, perturbation: unequal_variance}
   estimand_options:
     mean_difference: [welch_t]
+    trimmed_mean_difference: [yuen_trimmed_t]
   invalid:
     - {method: student_t, reason: pooled_variance_under_heteroscedasticity}
+    - {method: permutation_test, reason: exchangeability_violated_unequal_variance}
+    - {method: mann_whitney, reason: distribution_null_violated_unequal_variance}
     - {method: paired_t, reason: design_mismatch_no_pairing}
-  clarify_if: []
+    - {method: wilcoxon_signed_rank, reason: design_mismatch_no_pairing}
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: independent_two_group, outcome: continuous, perturbation: heavy_outliers}
   estimand_options:
-    location_shift: [mann_whitney, yuen_trimmed_t]
+    mean_difference: [permutation_test]
+    location_shift: [mann_whitney]
+    trimmed_mean_difference: [yuen_trimmed_t]
   invalid:
     - {method: student_t, reason: outlier_driven_inference}
     - {method: welch_t, reason: outlier_driven_inference}
     - {method: paired_t, reason: design_mismatch_no_pairing}
-  clarify_if: []
+    - {method: wilcoxon_signed_rank, reason: design_mismatch_no_pairing}
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: independent_two_group, outcome: continuous, perturbation: skewed}
   estimand_options:
-    location_shift: [mann_whitney, yuen_trimmed_t]
+    mean_difference: [permutation_test, welch_t]
+    location_shift: [mann_whitney]
+    trimmed_mean_difference: [yuen_trimmed_t]
   invalid:
     - {method: student_t, reason: non_normal_pooled_variance}
     - {method: paired_t, reason: design_mismatch_no_pairing}
-  clarify_if: []
+    - {method: wilcoxon_signed_rank, reason: design_mismatch_no_pairing}
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: independent_two_group, outcome: binary, perturbation: none}
   estimand_options:
@@ -52,9 +66,9 @@
     - {method: student_t, reason: outcome_type_mismatch}
     - {method: welch_t, reason: outcome_type_mismatch}
     - {method: mann_whitney, reason: outcome_type_mismatch}
-  clarify_if: []
+    - {method: permutation_test, reason: outcome_type_mismatch}
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: independent_two_group, outcome: binary, perturbation: small_expected_counts}
   estimand_options:
@@ -64,13 +78,13 @@
     - {method: student_t, reason: outcome_type_mismatch}
     - {method: welch_t, reason: outcome_type_mismatch}
     - {method: mann_whitney, reason: outcome_type_mismatch}
-  clarify_if: []
+    - {method: permutation_test, reason: outcome_type_mismatch}
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: paired, outcome: continuous, perturbation: none}
   estimand_options:
-    mean_difference_paired: [paired_t]
+    mean_difference_paired: [paired_t, permutation_test]
     location_shift: [wilcoxon_signed_rank]
   invalid:
     - {method: welch_t, reason: design_mismatch_ignores_pairing}
@@ -78,10 +92,11 @@
     - {method: mann_whitney, reason: design_mismatch_ignores_pairing}
   clarify_if: [pair_id_missing]
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: paired, outcome: continuous, perturbation: heavy_outliers}
   estimand_options:
+    mean_difference_paired: [permutation_test]
     location_shift: [wilcoxon_signed_rank]
   invalid:
     - {method: paired_t, reason: outlier_driven_inference}
@@ -90,10 +105,11 @@
     - {method: mann_whitney, reason: design_mismatch_ignores_pairing}
   clarify_if: [pair_id_missing]
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: paired, outcome: continuous, perturbation: skewed}
   estimand_options:
+    mean_difference_paired: [permutation_test, paired_t]
     location_shift: [wilcoxon_signed_rank]
   invalid:
     - {method: welch_t, reason: design_mismatch_ignores_pairing}
@@ -101,69 +117,66 @@
     - {method: mann_whitney, reason: design_mismatch_ignores_pairing}
   clarify_if: [pair_id_missing]
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: correlation, outcome: continuous, perturbation: none}
   estimand_options:
-    correlation: [pearson]
+    correlation: [pearson, permutation_test]
     rank_correlation: [spearman]
   invalid: []
-  clarify_if: []
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: correlation, outcome: continuous, perturbation: heavy_outliers}
   estimand_options:
     rank_correlation: [spearman]
   invalid:
     - {method: pearson, reason: outlier_driven_inference}
-  clarify_if: []
+    - {method: permutation_test, reason: outlier_driven_inference}
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: correlation, outcome: continuous, perturbation: skewed}
   estimand_options:
+    correlation: [permutation_test]
     rank_correlation: [spearman]
-  invalid: []
-  clarify_if: []
+  invalid:
+    - {method: pearson, reason: non_normal_small_sample}
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: k_group, outcome: continuous, perturbation: none}
   estimand_options:
     group_means_equal: [anova_oneway]
     group_distributions_equal: [kruskal_wallis]
   invalid: []
-  clarify_if: []
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: k_group, outcome: continuous, perturbation: heavy_outliers}
   estimand_options:
     group_distributions_equal: [kruskal_wallis]
   invalid:
     - {method: anova_oneway, reason: outlier_driven_inference}
-  clarify_if: []
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: k_group, outcome: continuous, perturbation: skewed}
   estimand_options:
     group_distributions_equal: [kruskal_wallis]
   invalid:
     - {method: anova_oneway, reason: non_normal_small_sample}
-  clarify_if: []
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: k_group, outcome: continuous, perturbation: unequal_variance}
   estimand_options:
-    group_distributions_equal: [kruskal_wallis]
+    group_means_equal: []
   invalid:
     - {method: anova_oneway, reason: pooled_variance_under_heteroscedasticity}
-  clarify_if: []
+    - {method: kruskal_wallis, reason: distribution_null_violated_unequal_variance}
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0
 
 - cell: {design: one_sample, outcome: binary, perturbation: none}
   estimand_options:
@@ -171,4 +184,4 @@
   invalid: []
   clarify_if: [p0_missing]
   reviewed_by: PENDING
-  version: 0.1.0
+  version: 0.2.0

@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from nanostat.audit.events import AuditLog
-from nanostat.dsl import PreprocessError, apply_preprocess
+from nanostat.dsl import PreprocessError
 from nanostat.planner import Planner, RulePlanner
 from nanostat.profiler import profile
 from nanostat.schemas import (
@@ -28,7 +28,7 @@ from nanostat.schemas import (
 )
 from nanostat.tools import ToolError, get_tool
 from nanostat.tools.base import RunContext
-from nanostat.verifier import VerifyReport, verify
+from nanostat.verifier import Mode, VerifyReport, assumption_report, verify
 
 
 @dataclass
@@ -54,7 +54,7 @@ def admissible_range(df: pd.DataFrame, rep: VerifyReport, plan: Plan) -> list[Ad
     rows: list[AdmissibleRow] = []
     if rep.cell is None or rep.ctx is None:
         return rows
-    for m in rep.cell.admissible(plan.alternative):
+    for m in rep.cell.admissible(rep.protocol.alternative, rep.allowed_estimands):
         try:
             out = get_tool(m).run(df, rep.ctx)
             rows.append(AdmissibleRow(method=m, statistic=out.statistic, p=out.p_value, effect=out.effect))
@@ -64,8 +64,10 @@ def admissible_range(df: pd.DataFrame, rep: VerifyReport, plan: Plan) -> list[Ad
 
 
 def execute_plan(df: pd.DataFrame, plan: Plan, rep: VerifyReport) -> Result:
-    assert plan.method is not None and rep.ctx is not None
-    df2, log, changed = apply_preprocess(df, plan)
+    """Execute on exactly the analysed rows that gate 2 verified (never re-derived here)."""
+    assert plan.method is not None and rep.ctx is not None and rep.analysed is not None
+    del df  # the raw frame is intentionally unused: only verified analysed rows are tested
+    df2 = rep.analysed
     tool = get_tool(plan.method)
     ctx: RunContext = rep.ctx
     out = tool.run(df2, ctx)
@@ -75,23 +77,29 @@ def execute_plan(df: pd.DataFrame, plan: Plan, rep: VerifyReport) -> Result:
         action=Action.execute,
         method=plan.method,
         design=plan.design,
-        alternative=plan.alternative,
+        alternative=rep.protocol.alternative,
         statistic=out.statistic,
         p_value=out.p_value,
         effect=out.effect,
         effect_label=out.effect_label,
         ci=out.ci,
         n=out.n,
-        alpha=plan.alpha,
-        decision=_decision(out.p_value, plan.alpha),  # type: ignore[arg-type]
+        alpha=rep.protocol.alpha,
+        decision=_decision(out.p_value, rep.protocol.alpha) if rep.mode == "confirmatory" else None,  # type: ignore[arg-type]
         method_status=rep.method_status,
         status_reason=rep.status_reason,
         policy_cell=rep.cell.key if rep.cell else None,
         admissible_range=admissible_range(df2, rep, plan),
         diagnostics={**rep.diagnostics, "required_checks": [c.value for c in rep.required_checks], "extra": out.extra},
-        preprocess_log=log,
-        estimand_changed=changed,
+        preprocess_log=rep.preprocess_log,
+        estimand_changed=rep.estimand_changed,
         messages=rep.messages,
+        estimand=rep.estimand,
+        hypothesis=rep.hypothesis,
+        confirmatory=rep.mode == "confirmatory",
+        protocol=rep.protocol.model_dump(mode="json"),
+        analysed_sha256=rep.analysed_sha256,
+        assumption_report=assumption_report(plan, rep),
     )
 
 
@@ -102,6 +110,7 @@ def run_analysis(
     planner: Planner | None = None,
     budget: Budget | None = None,
     deterministic_audit: bool = False,
+    mode: Mode = "confirmatory",
 ) -> RunRecord:
     planner = planner or RulePlanner()
     budget = budget or Budget()
@@ -125,8 +134,17 @@ def run_analysis(
             feedback = ["output was not a valid typed plan JSON"]
             continue
         audit.add("plan", {"attempt": attempts, "planner": planner.name, "plan": plan.model_dump(mode="json")})
-        rep = verify(plan, df, prof, study, question)
-        audit.add("verify", {"ok": rep.ok, "errors": rep.errors, "messages": rep.messages})
+        rep = verify(plan, df, prof, study, question, mode=mode)
+        audit.add(
+            "verify",
+            {
+                "ok": rep.ok,
+                "errors": rep.errors,
+                "messages": rep.messages,
+                "protocol": rep.protocol.model_dump(mode="json"),
+                "analysed_sha256": rep.analysed_sha256,
+            },
+        )
         if rep.ok:
             failure = None
             break
@@ -135,6 +153,8 @@ def run_analysis(
 
     if plan is None or rep is None or not rep.ok:
         code = ReasonCode.invalid_design
+        if rep is not None and any(e.startswith(("invalid_method", "unknown_method_status")) for e in rep.errors):
+            code = ReasonCode.no_admissible_method
         if rep is not None and any(e.startswith("unknown_column") for e in rep.errors):
             code = ReasonCode.unknown_column
         elif rep is not None and any(e.startswith("unsupported_method") for e in rep.errors):

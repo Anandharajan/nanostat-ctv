@@ -61,6 +61,9 @@ def analyze(
     adapter: Optional[Path] = typer.Option(None, "--adapter", help="Trained LoRA adapter (not available in v0.1)."),
     rules_only: bool = typer.Option(False, "--rules-only", help="Use the deterministic rule planner (B0)."),
     json_out: bool = typer.Option(False, "--json", help="Print the full result JSON."),
+    diagnostic: bool = typer.Option(
+        False, "--diagnostic", help="Allow methods outside the admissible set; returns p-values but no decision."
+    ),
 ) -> None:
     """Plan, verify and run a hypothesis test on a CSV."""
     if adapter is not None and not rules_only:
@@ -73,7 +76,7 @@ def analyze(
         typer.echo(f"input error: {e}", err=True)
         raise typer.Exit(2) from e
     st = Study.model_validate_json(study.read_text(encoding="utf-8")) if study else Study()
-    rec = run_analysis(question, st, df)
+    rec = run_analysis(question, st, df, mode="diagnostic" if diagnostic else "confirmatory")
     rid, _ = save_run(rec, data)
     if json_out:
         typer.echo(
@@ -141,10 +144,10 @@ def eval(  # noqa: A001 - CLI verb from SPEC §11
         typer.echo(NOT_AVAILABLE.format(what="the P-Bench suite (M6/M7)", v=__version__), err=True)
         raise typer.Exit(2)
     if suite == "nullcal":
-        from benchmark.nullcal import run_nullcal
+        from benchmark.nullcal import rows_to_json, run_nullcal
 
         rows = run_nullcal(sims=sims)
-        payload: Any = [r.__dict__ for r in rows]
+        payload: Any = rows_to_json(rows)
     else:
         from evaluation.metrics import evaluate_split
 
@@ -180,6 +183,32 @@ def train(
         return
     typer.echo(NOT_AVAILABLE.format(what=f"--stage {stage} ({arm})", v=__version__), err=True)
     raise typer.Exit(2)
+
+
+@app.command()
+def ablate(
+    data: Path = typer.Option(Path("data"), "--data", help="Factory output directory (pilot or full)."),
+    seeds: str = typer.Option("1,2,3,4,5", "--seeds"),
+    updates: int = typer.Option(300, "--updates"),
+    null_sims: int = typer.Option(300, "--null-sims", help="fresh null simulations per scenario (0 = skip)"),
+    out: Path = typer.Option(Path("results/ablation_cpu"), "--out"),
+) -> None:
+    """CPU ablation of the CTV training signal with a proxy policy (S0, R-F, R-A, R-AD, R-ADT, R-CTV)."""
+    from training.ablation.experiment import HParams, run_ablation, write_report
+    from training.ablation.tables import NullTable, TaskTable, build_null_table, build_task_table
+
+    tpath, npath = data / "ablation_tasks.npz", data / "ablation_null.npz"
+    tb = TaskTable.load(tpath) if tpath.exists() else build_task_table(data)
+    if not tpath.exists():
+        tb.save(tpath)
+    nt = None
+    if null_sims > 0:
+        nt = NullTable.load(npath) if npath.exists() else build_null_table(null_sims)
+        if not npath.exists():
+            nt.save(npath)
+    res = run_ablation(tb, nt, [int(s) for s in seeds.split(",")], HParams(updates=updates))
+    write_report(res, out)
+    typer.echo(f"wrote {out / 'ablation_results.md'}")
 
 
 @app.command()

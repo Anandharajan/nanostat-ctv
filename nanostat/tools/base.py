@@ -24,6 +24,7 @@ class RunContext:
     group_order: list[str] | None = None
     p0: float | None = None
     alpha: float = 0.05
+    design: Design | None = None
 
 
 @dataclass

@@ -124,3 +124,33 @@ def _is_binary(df: pd.DataFrame, ctx: RunContext) -> bool:
     if c is None or c not in df.columns:
         return False
     return int(df[c].dropna().nunique()) == 2
+
+
+MIN_GROUP_N = 10
+
+
+def cpu_verdicts(diag: dict[str, Any], design: Design) -> dict[str, str]:
+    """Deterministic CPU reading of each assumption check: 'ok' | 'violated'.
+    Checks that do not apply to this design/data are absent."""
+    flags = diag.get("flags", {})
+    samples = diag.get("samples", {})
+    out: dict[str, str] = {}
+    if samples:
+        out["outliers"] = "violated" if flags.get("heavy_outliers") else "ok"
+        out["skewness"] = "violated" if flags.get("skewed") else "ok"
+        shap = [s["shapiro_p"] for s in samples.values() if "shapiro_p" in s]
+        if shap:
+            out["normality"] = "violated" if min(shap) < 0.05 else "ok"
+        ns = [s.get("n", 0) for s in samples.values()]
+        out["sample_size"] = "violated" if min(ns) < MIN_GROUP_N else "ok"
+    if "var_ratio" in diag:
+        out["equal_variance"] = "violated" if flags.get("unequal_variance") else "ok"
+    if "min_expected" in diag:
+        out["expected_counts"] = "violated" if flags.get("small_expected_counts") else "ok"
+        n = sum(sum(r) for r in diag.get("table", [[0]]))
+        out["sample_size"] = "violated" if n < 2 * MIN_GROUP_N else "ok"
+    if design == Design.paired and "n_pairs" in diag:
+        out["pairing"] = "ok" if diag["n_pairs"] >= 3 else "violated"
+    if design == Design.one_sample and "n" in diag:
+        out["sample_size"] = "violated" if diag["n"] < MIN_GROUP_N else "ok"
+    return out

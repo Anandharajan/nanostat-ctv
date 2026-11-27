@@ -182,3 +182,48 @@ def binom(k, n, p0, alt):
         return float(sum(pm[: k + 1]))
     d = pm[k]
     return float(min(1, sum(v for v in pm if v <= d * Fraction(10000001, 10000000))))
+
+
+def perm_two_exact(a, b, alt):
+    """Exact label-permutation p for mean(a) - mean(b), enumerated with plain Python loops."""
+    import itertools
+
+    pooled = list(a) + list(b)
+    na = len(a)
+    obs = sum(a) / na - sum(b) / len(b)
+    tot = sum(pooled)
+    vals = []
+    for comb in itertools.combinations(range(len(pooled)), na):
+        sa = sum(pooled[i] for i in comb)
+        vals.append(sa / na - (tot - sa) / len(b))
+    return obs, _perm_p(vals, obs, alt)
+
+
+def perm_paired_exact(d, alt):
+    import itertools
+
+    obs = sum(d) / len(d)
+    vals = [sum(s * x for s, x in zip(signs, d)) / len(d) for signs in itertools.product((1, -1), repeat=len(d))]
+    return obs, _perm_p(vals, obs, alt)
+
+
+def perm_corr_exact(x, y, alt):
+    import itertools
+
+    mx, my = sum(x) / len(x), sum(y) / len(y)
+    xc = [v - mx for v in x]
+    yc = [v - my for v in y]
+    den = math.sqrt(sum(v * v for v in xc) * sum(v * v for v in yc))
+    obs = sum(a * b for a, b in zip(xc, yc)) / den
+    vals = [sum(xc[i] * yc[j] for i, j in enumerate(perm)) / den for perm in itertools.permutations(range(len(y)))]
+    return obs, _perm_p(vals, obs, alt)
+
+
+def _perm_p(vals, obs, alt, tol=1e-12):
+    if alt == "greater":
+        k = sum(v >= obs - tol for v in vals)
+    elif alt == "less":
+        k = sum(v <= obs + tol for v in vals)
+    else:
+        k = sum(abs(v) >= abs(obs) - tol for v in vals)
+    return k / len(vals)

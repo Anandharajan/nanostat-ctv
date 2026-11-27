@@ -6,6 +6,7 @@ A(x)/B(x) with cached p-values live only in `keys/`.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -13,7 +14,7 @@ from typing import Any
 
 import yaml
 
-from nanostat.schemas import Alternative, Design, OutcomeType
+from nanostat.schemas import Alternative, Design, Estimand, OutcomeType
 from nanostat.tools import REGISTRY
 
 _REPO_POLICY_DIR = Path(__file__).resolve().parent.parent / "configs" / "policies"
@@ -36,11 +37,16 @@ class PolicyCell:
     def key(self) -> str:
         return f"{self.design.value}/{self.outcome.value}/{self.perturbation}"
 
-    def admissible(self, alternative: Alternative = Alternative.two_sided) -> list[str]:
-        """Ordered, de-duplicated admissible methods. Two-sided-only tools drop out of A(x)
-        when the claim is directional (their p-value answers a different question)."""
+    def admissible(
+        self, alternative: Alternative = Alternative.two_sided, estimands: Iterable[str] | None = None
+    ) -> list[str]:
+        """A(x, e): ordered admissible methods for the protocol's estimands (all if None).
+        Two-sided-only tools drop out when the claim is directional."""
+        keep = None if estimands is None else {str(getattr(e, "value", e)) for e in estimands}
         out: list[str] = []
-        for methods in self.estimand_options.values():
+        for est, methods in self.estimand_options.items():
+            if keep is not None and est not in keep:
+                continue
             for m in methods:
                 if m in out:
                     continue
@@ -49,12 +55,32 @@ class PolicyCell:
                 out.append(m)
         return out
 
-    def preferred(self, alternative: Alternative = Alternative.two_sided) -> str | None:
-        a = self.admissible(alternative)
+    def invalid_for(
+        self, alternative: Alternative = Alternative.two_sided, estimands: Iterable[str] | None = None
+    ) -> dict[str, str]:
+        """B(x, e): cell-level invalid methods plus, when the estimand is locked, methods that are
+        admissible only for a different estimand (they answer a different question)."""
+        out = dict(self.invalid)
+        if estimands is not None:
+            adm = set(self.admissible(alternative, estimands))
+            for ms in self.estimand_options.values():
+                for m in ms:
+                    if m not in adm and m not in out:
+                        out[m] = "estimand_mismatch"
+        return out
+
+    def preferred(
+        self, alternative: Alternative = Alternative.two_sided, estimands: Iterable[str] | None = None
+    ) -> str | None:
+        a = self.admissible(alternative, estimands)
         return a[0] if a else None
 
-    def estimand_of(self, method: str) -> str | None:
-        return next((e for e, ms in self.estimand_options.items() if method in ms), None)
+    def estimand_of(self, method: str, estimands: Iterable[str] | None = None) -> str | None:
+        keep = None if estimands is None else {str(getattr(e, "value", e)) for e in estimands}
+        return next(
+            (e for e, ms in self.estimand_options.items() if method in ms and (keep is None or e in keep)),
+            None,
+        )
 
     @property
     def confirmatory_ok(self) -> bool:
@@ -80,6 +106,12 @@ def _parse(entry: dict[str, Any], src: str) -> PolicyCell:
     for m in [*cell.invalid, *(m for ms in cell.estimand_options.values() for m in ms)]:
         if m not in REGISTRY:
             raise PolicyError(f"{src}: cell {cell.key} names unknown method {m!r}")
+    for est, ms in cell.estimand_options.items():
+        if est not in {e.value for e in Estimand}:
+            raise PolicyError(f"{src}: cell {cell.key} has unknown estimand {est!r}")
+        for m in ms:
+            if est not in REGISTRY[m].estimands:
+                raise PolicyError(f"{src}: cell {cell.key}: {m} does not estimate {est}")
     overlap = set(cell.invalid) & set(cell.admissible())
     if overlap:
         raise PolicyError(f"{src}: cell {cell.key} lists {overlap} as both admissible and invalid")

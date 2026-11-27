@@ -37,7 +37,8 @@ def _args(rec: RunRecord) -> list[str] | None:
     plan = rec.plan
     if plan is None or plan.method not in R_TEMPLATES:
         return None
-    alt = _R_ALT[plan.alternative.value]
+    alt_val = rec.result.alternative.value if rec.result.alternative else "two-sided"
+    alt = _R_ALT[alt_val]
     c = plan.columns
     if plan.method in ("welch_t", "student_t"):
         order = rec.study.group_order

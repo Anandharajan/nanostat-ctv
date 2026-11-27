@@ -14,12 +14,12 @@ from typing import Any, Protocol
 import pandas as pd
 from pydantic import ValidationError
 
-from nanostat.claims import infer_alternative
-from nanostat.diagnostics import compute_diagnostics
+from nanostat.diagnostics import compute_diagnostics, cpu_verdicts
 from nanostat.policy import lookup
 from nanostat.profiler import column_info
 from nanostat.prompting import render_prompt
-from nanostat.schemas import Action, Design, Estimand, OutcomeType, Plan, ReasonCode, Study
+from nanostat.protocol import allowed_estimands, build_protocol
+from nanostat.schemas import Action, CheckClaim, Design, Estimand, OutcomeType, Plan, ReasonCode, Study
 from nanostat.tools import REGISTRY
 from nanostat.tools.base import RunContext
 from nanostat.verifier import expected_clarification, pair_id_columns
@@ -54,6 +54,7 @@ _ESTIMAND_FOR = {
     "chi2_independence": Estimand.association,
     "fisher_exact": Estimand.association,
     "binomial_test": Estimand.proportion,
+    "permutation_test": Estimand.mean_difference,
 }
 
 
@@ -134,7 +135,8 @@ class RulePlanner:
         if design is None:
             return Plan(action=Action.abstain, reason_code=ReasonCode.unsupported_design)
         cols = roles_for(design, study, df, prof)
-        alt = infer_alternative(question)
+        proto = build_protocol(question, study)
+        alt = proto.alternative
         y = cols.get("y") or cols.get("y2")
         if y and y in df.columns and df[y].dropna().nunique() < 2:
             return Plan(
@@ -145,17 +147,28 @@ class RulePlanner:
         outcome = (
             OutcomeType.binary if y and y in df.columns and df[y].dropna().nunique() == 2 else OutcomeType.continuous
         )
-        ctx = RunContext(columns=cols, alternative=alt, group_order=study.group_order, p0=study.p0)
+        ctx = RunContext(columns=cols, alternative=alt, group_order=study.group_order, p0=proto.p0, design=design)
         diag = compute_diagnostics(df, ctx, design)
         if "error" in diag:
             return Plan(action=Action.abstain, reason_code=ReasonCode.insufficient_data, rationale=diag["error"][:200])
         pert = diag["perturbation"]
         cell = lookup(design, outcome, pert)
-        method = cell.preferred(alt) if cell else None
-        if method is None:
-            return Plan(action=Action.abstain, reason_code=ReasonCode.unsupported_method)
-        params = {"p0": study.p0} if design == Design.one_sample and study.p0 is not None else {}
-        est = estimand_for(method)
+        allowed = allowed_estimands(design, proto)
+        method = cell.preferred(alt, allowed) if cell else None
+        if method is None or cell is None:
+            return Plan(
+                action=Action.abstain,
+                reason_code=ReasonCode.no_admissible_method,
+                rationale=f"no reviewed admissible method for {design.value}/{pert} under this protocol",
+            )
+        est_name = cell.estimand_of(method, allowed)
+        est = Estimand(est_name) if est_name else estimand_for(method)
+        verdicts = cpu_verdicts(diag, design)
+        checks = [
+            CheckClaim(check=c, verdict=verdicts[c.value])  # type: ignore[arg-type]
+            for c in REGISTRY[method].required_checks
+            if c.value in verdicts
+        ]
         return Plan(
             action=Action.execute,
             estimand=est,
@@ -163,9 +176,7 @@ class RulePlanner:
             method=method,
             columns=cols,
             alternative=alt,
-            alpha=0.05,
-            checks=list(REGISTRY[method].required_checks),
-            params=params,
+            checks=checks,
             rationale=f"{design.value} design; " + RATIONALE.get(pert, "").format(est=est.value),
         )
 

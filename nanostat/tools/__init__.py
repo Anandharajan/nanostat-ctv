@@ -11,6 +11,7 @@ from nanostat.tools.kruskal_wallis import KruskalWallis
 from nanostat.tools.mann_whitney import MannWhitney
 from nanostat.tools.paired_t import PairedT
 from nanostat.tools.pearson import Pearson
+from nanostat.tools.permutation_test import PermutationTest
 from nanostat.tools.spearman import Spearman
 from nanostat.tools.student_t import StudentT
 from nanostat.tools.welch_t import WelchT
@@ -27,7 +28,7 @@ M0_TOOLS = (
     "spearman",
 )
 M1_TOOLS = ("anova_oneway", "kruskal_wallis", "chi2_independence", "fisher_exact", "binomial_test")
-EXTRA_TOOLS = ("yuen_trimmed_t",)
+EXTRA_TOOLS = ("yuen_trimmed_t", "permutation_test")
 
 REGISTRY: dict[str, Tool] = {
     t.name: t
@@ -45,6 +46,7 @@ REGISTRY: dict[str, Tool] = {
         Chi2Independence(),
         FisherExact(),
         BinomialTest(),
+        PermutationTest(),
     )
 }
 

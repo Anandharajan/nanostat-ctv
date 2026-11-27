@@ -28,6 +28,7 @@ class ReasonCode(str, Enum):
     unknown_column = "unknown_column"
     invalid_design = "invalid_design"
     missing_null_value = "missing_null_value"
+    no_admissible_method = "no_admissible_method"
 
 
 class Design(str, Enum):
@@ -71,6 +72,17 @@ class Check(str, Enum):
     sample_size = "sample_size"
     pairing = "pairing"
     skewness = "skewness"
+
+
+class CheckClaim(BaseModel):
+    """A requested assumption check plus the model's typed reading of the evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+    check: Check
+    verdict: Literal["ok", "violated"]
+
+
+EstimandFamily = Literal["mean", "typical"]
 
 
 # ---- preprocess mini-DSL (SPEC §6.3) -------------------------------------------------
@@ -125,11 +137,13 @@ class Plan(_Strict):
     design: Design | None = None
     method: str | None = None
     columns: dict[str, str] = Field(default_factory=dict)
-    alternative: Alternative = Alternative.two_sided
-    preprocess: list[PreprocessOp] = Field(default_factory=list)
-    alpha: float = Field(default=0.05, gt=0.0, lt=0.5)
-    checks: list[Check] = Field(default_factory=list)
+    # Protocol fields: owned by the task/user (see Protocol). The model may restate them; the
+    # verifier rejects any value that differs from the locked protocol.
+    alternative: Alternative | None = None
+    alpha: float | None = Field(default=None, gt=0.0, lt=0.5)
     params: dict[str, float] = Field(default_factory=dict)
+    preprocess: list[PreprocessOp] = Field(default_factory=list)
+    checks: list[CheckClaim] = Field(default_factory=list)
     reason_code: ReasonCode | None = None
     rationale: str | None = Field(default=None, max_length=600)
 
@@ -167,6 +181,12 @@ class Study(_Strict):
     group_order: list[str] | None = None  # [reference, comparison]
     description: str = ""
     p0: float | None = Field(default=None, gt=0.0, lt=1.0)
+    # Optional protocol declarations by the user. When absent they are derived deterministically
+    # from the question (nanostat.protocol), never chosen by the model.
+    alpha: float = Field(default=0.05, gt=0.0, lt=0.5)
+    alternative: Alternative | None = None
+    estimand_family: EstimandFamily | None = None
+    allow_population_filters: bool = False
 
     @field_validator("roles")
     @classmethod
@@ -175,6 +195,17 @@ class Study(_Strict):
         if bad:
             raise ValueError(f"unknown column roles: {sorted(bad)}")
         return v
+
+
+class Protocol(_Strict):
+    """Locked analysis protocol. Immutable to the model (SPEC v3.1 §2.2)."""
+
+    alpha: float = Field(default=0.05, gt=0.0, lt=0.5)
+    alternative: Alternative = Alternative.two_sided
+    estimand_family: EstimandFamily | None = None
+    p0: float | None = None
+    allow_population_filters: bool = False
+    source: str = "derived"
 
 
 class Budget(_Strict):
@@ -217,7 +248,8 @@ class Lineage(_Strict):
 
 class DGP(_Strict):
     family: str
-    h0_true: bool
+    h0_true: bool  # truth of the null of the protocol / preferred estimand (see `hypothesis`)
+    nulls: dict[str, bool] = Field(default_factory=dict)  # per-hypothesis truth from the DGP
     effect: Literal["null", "borderline", "medium", "large"]
     perturbation: str
 
@@ -242,6 +274,8 @@ class KeyRecord(_Strict):
     split: Literal["train", "dev", "test"] | None = None
     policy_cell: str
     required_checks: list[Check] = Field(default_factory=list)
+    protocol: Protocol = Field(default_factory=Protocol)
+    hypothesis: str | None = None
 
 
 # ---- result (SPEC §5.4) ---------------------------------------------------------------
@@ -283,3 +317,9 @@ class Result(_Strict):
     estimand_changed: bool = False
     reason_code: ReasonCode | None = None
     messages: list[str] = Field(default_factory=list)
+    estimand: str | None = None
+    hypothesis: str | None = None
+    confirmatory: bool = True
+    protocol: dict[str, Any] = Field(default_factory=dict)
+    analysed_sha256: str | None = None
+    assumption_report: list[dict[str, Any]] = Field(default_factory=list)

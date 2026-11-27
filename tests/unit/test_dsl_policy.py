@@ -37,6 +37,10 @@ def test_policy_registry_loads_and_is_consistent():
     cells = load_policies()
     assert len(cells) >= 15
     for c in cells.values():
+        # k groups with unequal variances: no reviewed method for equal means -> abstain target
+        if c.key == "k_group/continuous/unequal_variance":
+            assert c.preferred() is None
+            continue
         assert c.preferred() is not None
         assert not set(c.invalid) & set(c.admissible())
         assert c.reviewed_by == "PENDING" and not c.confirmatory_ok
