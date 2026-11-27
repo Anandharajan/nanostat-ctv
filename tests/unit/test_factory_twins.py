@@ -70,3 +70,48 @@ def test_report_and_histogram(smoke_data: Path):
     hist = (smoke_data / "manifests" / "discordance_hist.csv").read_text().splitlines()
     assert len(hist) == 11 and sum(int(r.split(",")[2]) for r in hist[1:]) == rep["tasks"]
     assert set(rep["per_wording"]) == {"fixed", "changed"}
+
+
+def test_group_exclusive_splits(smoke_data: Path):
+    from benchmark.split import HELD_OUT_DOMAINS, HELD_OUT_SCENARIOS
+
+    keys = load_keys(smoke_data / "keys" / "keys.jsonl")
+    for k in keys.values():
+        if k.split != "train":
+            continue
+        assert k.twin_edit not in HELD_OUT_EDITS
+        assert (k.dgp.family, k.dgp.perturbation) not in HELD_OUT_SCENARIOS
+        dom = int(k.lineage.template_group.split("_d")[-1].split("_")[0])
+        assert dom not in HELD_OUT_DOMAINS
+        if k.twin_id:
+            assert keys[k.twin_id].split == "train"
+
+
+def test_null_labels_are_hypothesis_specific():
+    from benchmark.factory.dgp import null_labels
+
+    uv = null_labels("two_group", "unequal_variance", "null")
+    assert uv["mean_equal"] and not uv["distribution_equal"]
+    lev = null_labels("correlation", "outliers", "null")
+    assert lev["rho_zero"] and not lev["independence"]
+    sk = null_labels("paired", "skewed", "null")
+    assert sk["mean_diff_zero"] and not sk["symmetric_about_zero"]
+    assert not any(null_labels("two_group", "none", "medium").values())
+
+
+def test_estimand_change_twin_flips_method(tmp_path: Path):
+    from benchmark.factory import render
+    from benchmark.factory.dgp import Scenario, simulate
+    from benchmark.factory.grid import build_task
+    from benchmark.factory.twins import base_scenario, make_twin
+
+    sc0 = Scenario("two_group", "medium", "medium", "none", "two-sided", "hint", 77, 0, 3, {"variant": 0})
+    sc = base_scenario("estimand_change", sc0, "changed")
+    sim = simulate(sc, render.names_for(sc))
+    b1 = build_task(sc, sim, "sg", "a", "estimand_change", "changed")
+    sc2, sim2 = make_twin("estimand_change", sc, sim, "changed")
+    b2 = build_task(sc2, sim2, "sg", "b", "estimand_change", "changed")
+    assert not isinstance(b1, str) and not isinstance(b2, str)
+    assert b1.key.protocol.estimand_family == "mean" and b2.key.protocol.estimand_family == "typical"
+    assert {a.method for a in b1.key.admissible}.isdisjoint({a.method for a in b2.key.admissible})
+    assert b1.key.hypothesis == "mean_equal" and b2.key.hypothesis in ("distribution_equal", "trimmed_mean_equal")

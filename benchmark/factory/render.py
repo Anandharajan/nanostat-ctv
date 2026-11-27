@@ -118,6 +118,9 @@ def question(sc: Scenario, variant: int = 0) -> str:
     d = names_for(sc)
     a = sc.alternative
     o, ref, comp = d["outcome"], d["ref"], d["comp"]
+    word = sc.extra.get("estimand_word")
+    if word in ("mean", "typical") and sc.family in ("two_group", "paired", "k_group"):
+        o = f"{word} {o}"  # locks the protocol estimand family (nanostat.protocol)
     if sc.family in ("two_group", "paired") and sc.extra.get("neutral_question"):
         return f"Is there a difference in {o} between {ref} and {comp}?"
     if sc.family == "two_group" and sc.extra.get("dichotomised"):

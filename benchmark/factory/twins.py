@@ -12,7 +12,15 @@ import numpy as np
 
 from benchmark.factory.dgp import Scenario, Simulated, inject_outliers, simulate
 
-EDITS = ("design_flip", "add_outliers", "tail_flip", "small_counts", "remove_pair_id", "outcome_type")
+EDITS = (
+    "design_flip",
+    "add_outliers",
+    "tail_flip",
+    "small_counts",
+    "remove_pair_id",
+    "outcome_type",
+    "estimand_change",
+)
 
 # Which base families each edit applies to.
 EDIT_FAMILIES: dict[str, tuple[str, ...]] = {
@@ -22,6 +30,7 @@ EDIT_FAMILIES: dict[str, tuple[str, ...]] = {
     "small_counts": ("binary_two_group",),
     "remove_pair_id": ("paired",),
     "outcome_type": ("two_group",),
+    "estimand_change": ("two_group", "paired"),
 }
 
 # Which wording kinds each edit supports.
@@ -32,6 +41,7 @@ EDIT_WORDINGS: dict[str, tuple[str, ...]] = {
     "small_counts": ("fixed",),
     "remove_pair_id": ("fixed",),
     "outcome_type": ("fixed", "changed"),
+    "estimand_change": ("changed",),
 }
 
 
@@ -55,6 +65,8 @@ def base_scenario(edit: str, sc: Scenario, wording: str) -> Scenario:
     if edit == "remove_pair_id":
         extra["force_description"] = True
         pert = "none"
+    if edit == "estimand_change":
+        extra["estimand_word"] = "mean"
     return Scenario(sc.family, sc.n_regime, sc.effect, pert, alt, sc.prompt_style, sc.seed, sc.domain, sc.k, extra)
 
 
@@ -114,6 +126,22 @@ def make_twin(edit: str, sc: Scenario, sim: Simulated, wording: str) -> tuple[Sc
             {**sc.extra, "outlier_note": wording == "changed"},
         )
         return sc2, Simulated(df, dict(r), sim.group_order, sim.h0_true, sim.p0, sim.true_effect)
+
+    if edit == "estimand_change":
+        word = "typical" if sc.extra.get("estimand_word") == "mean" else "mean"
+        sc2 = Scenario(
+            sc.family,
+            sc.n_regime,
+            sc.effect,
+            sc.perturbation,
+            sc.alternative,
+            sc.prompt_style,
+            sc.seed,
+            sc.domain,
+            sc.k,
+            {**sc.extra, "estimand_word": word},
+        )
+        return sc2, sim
 
     if edit == "tail_flip":
         if sc.alternative == "two-sided":

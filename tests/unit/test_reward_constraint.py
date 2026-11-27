@@ -11,6 +11,7 @@ import pytest
 
 from benchmark.keys import load_keys
 from benchmark.reference import build_reference
+from nanostat.protocol import build_protocol
 from nanostat.schemas import (
     DGP,
     Alternative,
@@ -66,13 +67,22 @@ def outlier_task():
     df = pd.DataFrame({"arm": ["control"] * n + ["treatment"] * n, "y": np.r_[a, b]})
     study = Study(roles={"y": "y", "group": "arm"}, group_order=["control", "treatment"])
     q = "Is there a difference in y between control and treatment?"
+    protocol = build_protocol(q, study)
     ref = build_reference(
-        df, Design.independent_two_group, {"y": "y", "group": "arm"}, Alternative.two_sided, ["control", "treatment"]
+        df, Design.independent_two_group, {"y": "y", "group": "arm"}, protocol, ["control", "treatment"]
     )
     assert ref is not None and ref.perturbation == "heavy_outliers"
     key = KeyRecord(
         task_id="t_x",
-        dgp=DGP(family="two_group", h0_true=False, effect="borderline", perturbation="outliers"),
+        dgp=DGP(
+            family="two_group",
+            h0_true=False,
+            nulls={"mean_equal": False, "distribution_equal": False, "trimmed_mean_equal": False},
+            effect="borderline",
+            perturbation="outliers",
+        ),
+        protocol=protocol,
+        hypothesis=ref.hypothesis,
         design=Design.independent_two_group,
         outcome=OutcomeType.continuous,
         alternative=Alternative.two_sided,
@@ -133,17 +143,44 @@ def test_invalid_output_scores_zero(outlier_task):
     )
 
 
-def test_wrong_tail_not_rewarded_as_valid(outlier_task):
+def test_wrong_tail_is_a_protocol_violation(outlier_task):
     key, df, study, q = outlier_task
     s = score_plan(key, _plan_text("mann_whitney", alt="greater"), df, study, q)
-    assert s.reward == 0.0 and not s.valid
+    assert s.reward == -0.2 and s.failure == "forbidden_or_protocol"
 
 
-def test_assumption_credit(outlier_task):
+@pytest.mark.parametrize(
+    "extra",
+    [{"alpha": 0.10}, {"params": {"p0": 0.3}}, {"estimand": "mean_difference", "method": "mann_whitney"}],
+)
+def test_changing_locked_protocol_never_increases_reward(outlier_task, extra):
+    key, df, study, q = outlier_task
+    honest = score_plan(key, _plan_text("mann_whitney"), df, study, q)
+    d = json.loads(_plan_text("mann_whitney"))
+    d.update(extra)
+    hacked = score_plan(key, json.dumps(d), df, study, q)
+    assert hacked.reward < honest.reward
+
+
+def _claims(verdict, checks=("sample_size",)):
+    return [{"check": c, "verdict": verdict} for c in checks]
+
+
+def test_assumption_credit_is_evidence_grounded(outlier_task):
     key, df, study, q = outlier_task
     lo = score_plan(key, _plan_text("mann_whitney"), df, study, q)
-    hi = score_plan(key, _plan_text("mann_whitney", checks=["sample_size"]), df, study, q)
-    assert hi.reward - lo.reward == pytest.approx(0.10)
+    right = score_plan(key, _plan_text("mann_whitney", checks=_claims("ok")), df, study, q)
+    wrong = score_plan(key, _plan_text("mann_whitney", checks=_claims("violated")), df, study, q)
+    assert right.reward - lo.reward == pytest.approx(0.10)  # sample_size is ok here (n = 20 per group)
+    assert wrong.reward == pytest.approx(lo.reward)  # a contradicting verdict earns nothing
+
+
+def test_listing_every_check_earns_nothing_extra(outlier_task):
+    key, df, study, q = outlier_task
+    right = score_plan(key, _plan_text("mann_whitney", checks=_claims("ok")), df, study, q)
+    names = ("sample_size", "normality", "outliers", "equal_variance", "pairing", "skewness")
+    spam = score_plan(key, _plan_text("mann_whitney", checks=_claims("ok", names)), df, study, q)
+    assert spam.reward < right.reward
 
 
 def test_always_abstain_scores_below_uniform_valid(smoke_data):
@@ -159,7 +196,7 @@ def test_always_abstain_scores_below_uniform_valid(smoke_data):
         df = pd.read_csv(smoke_data / t.data_ref)
         abstain = json.dumps({"action": "abstain", "reason_code": "unsupported_design"})
         abstain_total += score_plan(k, abstain, df, t.study, t.question).reward
-        valid_total += score_plan(k, gold_plan(k).model_dump_json(), df, t.study, t.question).reward
+        valid_total += score_plan(k, gold_plan(k, t, df).model_dump_json(), df, t.study, t.question).reward
     assert valid_total > abstain_total
     assert abstain_total < 0
 
@@ -169,7 +206,8 @@ def test_gold_plan_scores_near_max(smoke_data):
     for line in (smoke_data / "tasks" / "train.jsonl").read_text(encoding="utf-8").splitlines()[:25]:
         t = TaskRecord.model_validate_json(line)
         k = keys[t.task_id]
-        s = score_plan(k, gold_plan(k).model_dump_json(), pd.read_csv(smoke_data / t.data_ref), t.study, t.question)
+        df = pd.read_csv(smoke_data / t.data_ref)
+        s = score_plan(k, gold_plan(k, t, df).model_dump_json(), df, t.study, t.question)
         assert s.reward >= 0.99, (t.task_id, s)
 
 
@@ -274,3 +312,53 @@ def test_discordance_score():
     same = discordance([MethodRun(method="a", p=0.5)], [MethodRun(method="b", p=0.5)])
     assert same.score == 0.0 and not same.decision_flip
     assert sampling_weight(0.0) == pytest.approx(0.1)
+
+
+def test_scenario_constraint_bites_only_where_liberal():
+    from training.constraint import ScenarioConstraint, binomial_tolerance
+
+    c = ScenarioConstraint(pwr_ref={"a": 0.8, "b": 0.8})
+    rng = np.random.default_rng(3)
+    for _ in range(150):
+        c.update(
+            {"a": list((rng.random(8) < 0.25).astype(float)), "b": list((rng.random(8) < 0.05).astype(float))},
+            {"a": list((rng.random(8) < 0.85).astype(float)), "b": list((rng.random(8) < 0.85).astype(float))},
+        )
+    assert c.states["a"].lam1 > 0.3 and c.states["b"].lam1 < 0.05
+    assert all(0 <= st.lam1 <= c.lambda_max and 0 <= st.lam2 <= c.lambda_max for st in c.states.values())
+    assert binomial_tolerance(0.05, 400) < binomial_tolerance(0.05, 25)  # tolerance shrinks with evidence
+    assert c.shape("a", 1.0, True, True, "null") < 1.0
+    assert c.shape("a", 1.0, True, None, "null") == 1.0  # unknown hypothesis truth -> no shaping
+    c2 = ScenarioConstraint(pwr_ref={})
+    c2.load_state_dict(c.state_dict())
+    assert c2.state_dict() == c.state_dict()
+
+
+def test_batch_stats_use_hypothesis_of_executed_test():
+    from training.reward_server import Scored, batch_stats
+
+    key = KeyRecord(
+        task_id="t",
+        dgp=DGP(
+            family="two_group",
+            h0_true=True,
+            effect="null",
+            perturbation="unequal_variance",
+            nulls={"mean_equal": True, "distribution_equal": False},
+        ),
+        design=Design.independent_two_group,
+        outcome=OutcomeType.continuous,
+        alternative=Alternative.two_sided,
+        columns={},
+        admissible=[],
+        invalid=[],
+        preferred=None,
+        reference_decision=None,
+        discordance=Discordance(decision_flip=False, z_gap=0, score=0),
+        lineage=Lineage(scenario_group="s", template_group="t", seed=1, generator_version="x"),
+        policy_cell="c",
+    )
+    welch = Scored(1.0, True, decision="reject", hypothesis="mean_equal")
+    mwu = Scored(1.0, True, decision="reject", hypothesis="distribution_equal")
+    st = batch_stats([key, key], [welch, mwu])
+    assert st["null_rejects"] == [1.0]  # only the mean test's rejection is a false positive

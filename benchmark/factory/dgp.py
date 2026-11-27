@@ -49,6 +49,33 @@ class Simulated:
     h0_true: bool
     p0: float | None = None
     true_effect: float = 0.0
+    nulls: dict[str, bool] = field(default_factory=dict)
+
+
+def null_labels(family: str, perturbation: str, effect: str) -> dict[str, bool]:
+    """Truth of every hypothesis a test in this family could target (SPEC v3.1 §2.6).
+
+    A rejection is a false positive only for the hypothesis the chosen test actually tests.
+    E.g. unequal variances: equal means is TRUE but equal distributions is FALSE; symmetric
+    leverage contamination: rho = 0 is TRUE but independence is FALSE."""
+    h0 = effect == "null"
+    if family == "two_group":
+        return {
+            "mean_equal": h0,
+            "trimmed_mean_equal": h0,
+            "distribution_equal": h0 and perturbation != "unequal_variance",
+        }
+    if family == "paired":
+        return {"mean_diff_zero": h0, "symmetric_about_zero": h0 and perturbation != "skewed"}
+    if family == "correlation":
+        return {"rho_zero": h0, "independence": h0 and perturbation != "outliers"}
+    if family == "k_group":
+        return {"means_equal": h0, "distributions_equal": h0 and perturbation != "unequal_variance"}
+    if family == "binary_two_group":
+        return {"independence": h0}
+    if family == "one_proportion":
+        return {"p_equals_p0": h0}
+    return {}
 
 
 def _sign(sc: Scenario, rng: np.random.Generator) -> float:
@@ -94,6 +121,12 @@ def _ids(n: int, rng: np.random.Generator) -> np.ndarray:
 
 
 def simulate(sc: Scenario, names: dict[str, Any]) -> Simulated:
+    sim = _simulate(sc, names)
+    sim.nulls = null_labels(sc.family, sc.perturbation, sc.effect)
+    return sim
+
+
+def _simulate(sc: Scenario, names: dict[str, Any]) -> Simulated:
     rng = np.random.default_rng(sc.seed)
     z = EFFECT_Z[sc.effect]
     sgn = _sign(sc, rng)

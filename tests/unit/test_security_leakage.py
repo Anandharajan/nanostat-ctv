@@ -80,6 +80,10 @@ POLICY_SIDE = [
     PKG / "profiler.py",
     ROOT / "training" / "sampler.py",
     ROOT / "training" / "constraint.py",
+    ROOT / "training" / "ablation" / "actions.py",
+    ROOT / "training" / "ablation" / "features.py",
+    ROOT / "training" / "ablation" / "policy.py",
+    PKG / "protocol.py",
 ]
 
 
@@ -95,7 +99,8 @@ def test_policy_side_never_mentions_keys(path: Path):
 def test_import_graph_has_no_keys():
     code = (
         "import sys; import nanostat.planner, nanostat.controller, nanostat.cli, nanostat.api, "
-        "training.sampler, training.constraint; "
+        "training.sampler, training.constraint, training.ablation.features, "
+        "training.ablation.policy, training.ablation.actions; "
         "bad=[m for m in sys.modules if m=='benchmark.keys' or m.startswith('benchmark')]; "
         "print(bad); sys.exit(1 if bad else 0)"
     )

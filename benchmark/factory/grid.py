@@ -15,12 +15,13 @@ import numpy as np
 
 from benchmark.discordance import discordance, sampling_weight
 from benchmark.factory import render
-from benchmark.factory.dgp import FAMILIES, N_REGIMES, PERTURBATIONS, Scenario, Simulated, simulate
+from benchmark.factory.dgp import FAMILIES, N_REGIMES, PERTURBATIONS, Scenario, Simulated, null_labels, simulate
 from benchmark.factory.twins import EDIT_FAMILIES, EDIT_WORDINGS, EDITS, base_scenario, make_twin
 from benchmark.keys import write_keys
 from benchmark.reference import build_reference
-from benchmark.split import HELD_OUT_EDITS, assign_split
+from benchmark.split import HELD_OUT_EDITS, assign_split, held_out
 from nanostat.profiler import profile
+from nanostat.protocol import build_protocol
 from nanostat.schemas import (
     DGP,
     Action,
@@ -94,7 +95,12 @@ def sample_scenario(rng: np.random.Generator, seed: int, family: str | None = No
         seed=seed,
         domain=int(rng.integers(0, len(render.DOMAINS))),
         k=int(rng.choice([3, 4])),
-        extra={"variant": int(rng.integers(0, render.N_TEMPLATE_VARIANTS))},
+        extra={
+            "variant": int(rng.integers(0, render.N_TEMPLATE_VARIANTS)),
+            "estimand_word": (
+                str(rng.choice(["none", "mean", "typical"])) if fam in ("two_group", "paired", "k_group") else "none"
+            ),
+        },
     )
 
 
@@ -123,7 +129,10 @@ def build_task(
         description=render.description(sc),
         p0=sim.p0,
     )
-    alt = Alternative(sc.alternative)
+    protocol = build_protocol(q, study)
+    alt = protocol.alternative
+    if alt != Alternative(sc.alternative):
+        return "protocol_direction_mismatch"
     csv_bytes = sim.df.to_csv(index=False, lineterminator="\n").encode()
     tid = "t_" + _hid(GENERATOR_VERSION, asdict(sc) | {"extra": sorted(sc.extra.items())}, member, edit, wording)[:16]
 
@@ -136,57 +145,77 @@ def build_task(
         seed=sc.seed,
         generator_version=GENERATOR_VERSION,
     )
-    dgp = DGP(family=sc.family, h0_true=sim.h0_true, effect=sc.effect, perturbation=sc.perturbation)  # type: ignore[arg-type]
+    nulls = null_labels("binary_two_group" if sc.extra.get("dichotomised") else sc.family, sc.perturbation, sc.effect)
+
+    def _dgp(hyp: str | None) -> DGP:
+        h0 = nulls.get(hyp, sc.effect == "null") if hyp else sc.effect == "null"
+        return DGP(family=sc.family, h0_true=h0, nulls=nulls, effect=sc.effect, perturbation=sc.perturbation)  # type: ignore[arg-type]
+
+    common = {
+        "task_id": tid,
+        "columns": dict(sim.roles),
+        "lineage": lineage,
+        "protocol": protocol,
+        "twin_edit": edit,
+        "twin_wording": wording,
+        "alternative": alt,
+        "design": design,
+    }
 
     if clar is not None:
         if clar != ReasonCode.missing_pair_id:
             return f"unexpected_clarify:{clar.value}"
         key = KeyRecord(
-            task_id=tid,
-            dgp=dgp,
-            design=design,
+            **common,  # type: ignore[arg-type]
+            dgp=_dgp(None),
             outcome=outcome,
-            alternative=alt,
-            columns=dict(sim.roles),
             admissible=[],
             invalid=[],
             preferred=None,
             reference_decision=None,
             discordance=discordance([], []),
-            lineage=lineage,
             abstain_target={"action": Action.clarify.value, "reason_code": clar.value},
             policy_cell=f"{design.value}/{outcome.value}/clarify",
-            twin_edit=edit,
-            twin_wording=wording,  # type: ignore[arg-type]
         )
         gold: tuple[str, ...] = ("clarify", clar.value)
     else:
-        ref = build_reference(sim.df, design, sim.roles, alt, sim.group_order, sim.p0)
+        ref = build_reference(sim.df, design, sim.roles, protocol, sim.group_order)
         if ref is None:
             return "reference_failed"
-        if ref.preferred is None or not ref.admissible or ref.admissible[0].p is None:
-            return "no_admissible_p"
-        if any(r.p is not None and not np.isfinite(r.p) for r in ref.admissible):
-            return "nan_p"
-        key = KeyRecord(
-            task_id=tid,
-            dgp=dgp,
-            design=design,
-            outcome=ref.outcome,
-            alternative=alt,
-            columns=dict(sim.roles),
-            admissible=ref.admissible,
-            invalid=ref.invalid,
-            preferred=ref.preferred,
-            reference_decision=ref.reference_decision,  # type: ignore[arg-type]
-            discordance=discordance(ref.admissible, ref.invalid),
-            lineage=lineage,
-            policy_cell=ref.cell.key,
-            required_checks=ref.required_checks,
-            twin_edit=edit,
-            twin_wording=wording,  # type: ignore[arg-type]
-        )
-        gold = ("execute", ",".join(sorted(r.method for r in ref.admissible)), alt.value)
+        if ref.preferred is None:
+            # no reviewed admissible method under this protocol: the correct action is to abstain
+            key = KeyRecord(
+                **common,  # type: ignore[arg-type]
+                dgp=_dgp(None),
+                outcome=ref.outcome,
+                admissible=[],
+                invalid=ref.invalid,
+                preferred=None,
+                reference_decision=None,
+                discordance=discordance([], []),
+                abstain_target={"action": Action.abstain.value, "reason_code": ReasonCode.no_admissible_method.value},
+                policy_cell=ref.cell.key,
+            )
+            gold = ("abstain", ReasonCode.no_admissible_method.value)
+        else:
+            if not ref.admissible or ref.admissible[0].p is None:
+                return "no_admissible_p"
+            if any(r.p is not None and not np.isfinite(r.p) for r in ref.admissible):
+                return "nan_p"
+            key = KeyRecord(
+                **common,  # type: ignore[arg-type]
+                dgp=_dgp(ref.hypothesis),
+                outcome=ref.outcome,
+                admissible=ref.admissible,
+                invalid=ref.invalid,
+                preferred=ref.preferred,
+                reference_decision=ref.reference_decision,  # type: ignore[arg-type]
+                discordance=discordance(ref.admissible, ref.invalid),
+                policy_cell=ref.cell.key,
+                required_checks=ref.required_checks,
+                hypothesis=ref.hypothesis,
+            )
+            gold = ("execute", ",".join(sorted(r.method for r in ref.admissible)), alt.value)
     task = TaskRecord(task_id=tid, question=q, study=study, data_ref=f"csv/{tid}.csv")
     return Built(task, key, csv_bytes, gold)
 
@@ -271,10 +300,17 @@ def run_factory(profile_name: str, out: Path, seed: int = 20261126) -> FactoryRe
     for b in built:
         if b.key.split is not None:
             continue
-        sp = assign_split(b.key.lineage.scenario_group, b.key.lineage.template_group, b.key.twin_edit)
-        b.key.split = sp  # type: ignore[assignment]
-        if b.key.twin_id:
-            by_id[b.key.twin_id].key.split = sp  # type: ignore[assignment]
+        members = [b] + ([by_id[b.key.twin_id]] if b.key.twin_id else [])
+        lin = b.key.lineage
+        if any(
+            held_out(m.key.lineage.template_group, m.key.twin_edit, m.key.dgp.family, m.key.dgp.perturbation)
+            for m in members
+        ):
+            sp = "test"
+        else:
+            sp = assign_split(lin.scenario_group, lin.template_group, b.key.twin_edit)
+        for m in members:  # twins always share a split
+            m.key.split = sp  # type: ignore[assignment]
 
     _write(out, built, rep)
     return rep

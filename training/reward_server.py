@@ -17,9 +17,9 @@ from nanostat.controller import execute_plan
 from nanostat.dsl import PreprocessError
 from nanostat.planner import parse_plan
 from nanostat.profiler import profile
-from nanostat.schemas import Action, KeyRecord, Plan, Study
+from nanostat.schemas import Action, KeyRecord, Study
 from nanostat.tools import ToolError
-from nanostat.verifier import verify
+from nanostat.verifier import assumption_score, verify
 from nanostat.zscore import zc
 
 
@@ -45,6 +45,7 @@ class Scored:
     action: str | None = None
     parts: dict[str, float] = field(default_factory=dict)
     failure: str | None = None
+    hypothesis: str | None = None
 
 
 # Numbers the model states outside the typed plan count as fabricated (the model never computes
@@ -59,11 +60,8 @@ def has_fabricated_number(text: str) -> bool:
     return bool(_FABRICATED.search(outside))
 
 
-def _alt_ok(key: KeyRecord, plan: Plan, method: str) -> bool:
-    for a in key.admissible:
-        if a.method == method:
-            return plan.alternative.value == a.config.get("alternative", key.alternative.value)
-    return False
+def _decide(p: float, alpha: float) -> str:
+    return "reject" if p < alpha else "fail_to_reject"
 
 
 def score_plan(
@@ -74,6 +72,7 @@ def score_plan(
     question: str,
     weights: RewardWeights | None = None,
 ) -> Scored:
+    """CTV per-rollout reward (SPEC §7.4, v3.1 §2.2-§2.5)."""
     w = weights or RewardWeights()
     plan, err = parse_plan(raw_text)
     if plan is None:
@@ -95,9 +94,8 @@ def score_plan(
 
     method = plan.method or ""
     in_B = method in {b.method for b in key.invalid}
-    prof = profile(df)
-    rep = verify(plan, df, prof, study, question)
-    forbidden = any(e.startswith("forbidden") for e in rep.errors)
+    rep = verify(plan, df, profile(df), study, question, protocol=key.protocol)
+    forbidden = any(e.startswith(("forbidden", "protocol_violation", "wrong_tail")) for e in rep.errors)
     if in_B or forbidden:
         return Scored(
             w.invalid_penalty,
@@ -105,7 +103,7 @@ def score_plan(
             method=method,
             in_B=in_B,
             action="execute",
-            failure="forbidden" if forbidden else "invalid_method",
+            failure="forbidden_or_protocol" if forbidden else "invalid_method",
         )
     if not rep.ok:
         return Scored(0.0, False, method=method, action="execute", failure="verifier:" + ";".join(rep.errors[:3]))
@@ -117,29 +115,40 @@ def score_plan(
     if p is None or math.isnan(p):
         return Scored(0.0, False, method=method, action="execute", failure="nan_p")
 
-    in_A = method in {a.method for a in key.admissible} and _alt_ok(key, plan, method)
-    refs = [a.p for a in key.admissible if a.p is not None]
+    in_A = method in {a.method for a in key.admissible}
+    refs = [a.p for a in key.admissible if a.p is not None]  # max over A(x, e) only
     p_close = max((math.exp(-abs(zc(p) - zc(pa))) for pa in refs), default=0.0)
     concl = float(res.decision == key.reference_decision)
-    required = {c.value for c in rep.required_checks}
-    r_assume = 1.0 if not required else len(required & {c.value for c in plan.checks}) / len(required)
+    r_assume = assumption_score(plan, rep)  # evidence-grounded, see nanostat.verifier
     parts = {"method": float(in_A), "p": p_close, "concl": concl, "assume": r_assume}
     R = w.w_method * parts["method"] + w.w_p * p_close + w.w_concl * concl + w.w_assume * r_assume
     return Scored(
-        R, True, method=method, p=p, decision=res.decision, in_A=in_A, in_B=False, action="execute", parts=parts
+        R,
+        True,
+        method=method,
+        p=p,
+        decision=res.decision,
+        in_A=in_A,
+        in_B=False,
+        action="execute",
+        parts=parts,
+        hypothesis=rep.hypothesis,
     )
 
 
 def score_fisher(key: KeyRecord, raw_text: str, df: pd.DataFrame, study: Study, question: str) -> Scored:
-    """R-F comparator: 0.9 * z-closeness to the single canonical reference + 0.1 * conclusion."""
+    """R-F comparator (Fisher-R1-style): 0.9 * z-closeness to the single canonical reference
+    + 0.1 * conclusion, gated only on operational validity (the plan parses, columns exist and
+    the test executes). It deliberately has no knowledge of A(x) or B(x): it runs in the
+    verifier's diagnostic mode, which does not reject invalid or unknown methods."""
     plan, err = parse_plan(raw_text)
     if plan is None:
         return Scored(0.0, False, failure=err)
     if key.abstain_target is not None or plan.action != Action.execute:
         return Scored(0.0, True, action=plan.action.value)
-    rep = verify(plan, df, profile(df), study, question)
+    rep = verify(plan, df, profile(df), study, question, protocol=key.protocol, mode="diagnostic")
     if not rep.ok:
-        return Scored(0.0, False, method=plan.method, failure="verifier")
+        return Scored(0.0, False, method=plan.method, failure="verifier:" + ";".join(rep.errors[:3]))
     try:
         res = execute_plan(df, plan, rep)
     except (ToolError, PreprocessError, ValueError, FloatingPointError) as e:
@@ -147,27 +156,37 @@ def score_fisher(key: KeyRecord, raw_text: str, df: pd.DataFrame, study: Study, 
     ref = next((a for a in key.admissible if a.method == key.preferred), None)
     if ref is None or ref.p is None or res.p_value is None:
         return Scored(0.0, True, method=plan.method)
+    decision = _decide(res.p_value, key.protocol.alpha)
     close = math.exp(-abs(zc(res.p_value) - zc(ref.p)))
-    concl = float(res.decision == key.reference_decision)
+    concl = float(decision == key.reference_decision)
     return Scored(
         0.9 * close + 0.1 * concl,
         True,
         method=plan.method,
         p=res.p_value,
-        decision=res.decision,
+        decision=decision,
         in_A=plan.method in {a.method for a in key.admissible},
         in_B=plan.method in {b.method for b in key.invalid},
         action="execute",
+        hypothesis=rep.hypothesis,
     )
+
+
+def hypothesis_true(key: KeyRecord, s: Scored) -> bool | None:
+    """Truth of the null that the executed test actually tests (SPEC v3.1 §2.6)."""
+    hyp = s.hypothesis or key.hypothesis
+    if hyp is None:
+        return None
+    return key.dgp.nulls.get(hyp)
 
 
 def batch_stats(keys: list[KeyRecord], scored: list[Scored]) -> dict[str, Any]:
     """Inputs for the validity constraint (SPEC §7.6)."""
-    null = [s for k, s in zip(keys, scored) if k.dgp.h0_true and k.abstain_target is None]
+    null = [s for k, s in zip(keys, scored) if s.decision is not None and hypothesis_true(k, s) is True]
     alt = [
         s
         for k, s in zip(keys, scored)
-        if not k.dgp.h0_true and k.dgp.effect in ("medium", "large") and k.abstain_target is None
+        if s.decision is not None and hypothesis_true(k, s) is False and k.dgp.effect in ("medium", "large")
     ]
     return {
         "null_rejects": [float(s.decision == "reject") for s in null],
