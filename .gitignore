@@ -19,6 +19,7 @@ results/*
 !results/ablation_cpu/
 !results/b0_dev.json
 !results/b0_test.json
+!results/spec_label_nullcal.json
 !results/pbench/
 results/pbench/*.jsonl
 *.zip

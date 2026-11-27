@@ -1,4 +1,11 @@
 # STATUS
+
+## v0.4.0 (2026-11-27): regression / survival task families
+- 7 model-based families (linear, binary, IV, multi-arm, survival-group, Cox, panel) with **spec-level answer keys** (`benchmark/spec.py`) and 3 spec twins (add clustering, add confounder, make endogenous). CTV reward, metrics and SFT gold plans judge the full `ModelSpec`.
+- Fixes found along the way: snake_case variable names (e.g. `dropped_out`) were parsed as claim words; positive/negative added to the direction vocabulary.
+- Measured: null calibration of admissible vs invalid specs (500 sims each), docs/REGRESSION_FAMILIES.md. The first run showed the heteroskedastic invalid label was wrong for balanced arms (5.4% vs 5.4%); the DGP is now unbalanced (5.6% vs 20.8%). Multi-arm cluster-robust F is slightly liberal (7.2%). Panel ignoring repeated measures is conservative (0.4%), documented as such.
+- Pilot factory: 1,400 tasks incl. 627 model-based, 66 spec twin pairs (76 s). `pytest` 303 passed; ruff/mypy clean.
+- Still NOT RUN: any LLM or GPU run (Magnitude not installed).
 Milestone: v3.1 Steps 2–4 done on CPU (P0 fixes, P-Bench preflight + runner, M4 tools); LLM harness ready, LLM runs NOT RUN · Release: v0.3.0 (local; v0.2.0 + v0.3.0 not pushed) · Date: 2026-11-27
 
 ## Done this session

@@ -125,6 +125,9 @@ class RulePlanner:
 
     name = "rules"
 
+    def _model_plan(self, question: str, study: Study, df: pd.DataFrame) -> Plan:
+        return _model_plan_impl(question, study, df)
+
     def plan(
         self,
         question: str,
@@ -141,6 +144,8 @@ class RulePlanner:
         if reason is not None:
             return Plan(action=Action.clarify, reason_code=reason, rationale=f"cannot proceed: {reason.value}")
         design = infer_design(study, df, prof)
+        if study.model is not None and design in (None, Design.regression, Design.survival):
+            return self._model_plan(question, study, df)
         if design is None:
             return Plan(action=Action.abstain, reason_code=ReasonCode.unsupported_design)
         cols = roles_for(design, study, df, prof)
@@ -188,6 +193,35 @@ class RulePlanner:
             checks=checks,
             rationale=f"{design.value} design; " + RATIONALE.get(pert, "").format(est=est.value),
         )
+
+
+def _model_plan_impl(question: str, study: Study, df: pd.DataFrame) -> Plan:
+    """Rule plan for a user-declared model: survival if time/event given, else regression;
+    method = registry-preferred for the outcome type and protocol."""
+    m = study.model
+    assert m is not None
+    design = Design.survival if (m.time and m.event) else Design.regression
+    if design == Design.survival:
+        method = "cox_ph" if m.exposure else "log_rank"
+    else:
+        y = m.outcome
+        binary = bool(y and y in df.columns and df[y].dropna().nunique() == 2)
+        if len(m.exposure) > 1 or m.restriction != "each":
+            method = "ols_wald"
+        elif m.instruments:
+            method = "iv_2sls"
+        elif m.group:
+            method = "mixed_lm"
+        else:
+            method = "logistic" if binary else "ols_coef"
+    return Plan(
+        action=Action.execute,
+        design=design,
+        method=method,
+        model=m,
+        estimand=estimand_for(method),
+        rationale="specification declared by the user",
+    )
 
 
 _JSON_RE = re.compile(r"\{.*\}", re.S)

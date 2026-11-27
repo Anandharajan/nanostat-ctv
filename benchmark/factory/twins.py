@@ -20,6 +20,9 @@ EDITS = (
     "remove_pair_id",
     "outcome_type",
     "estimand_change",
+    "add_clustering",
+    "add_confounder",
+    "make_endogenous",
 )
 
 # Which base families each edit applies to.
@@ -31,6 +34,9 @@ EDIT_FAMILIES: dict[str, tuple[str, ...]] = {
     "remove_pair_id": ("paired",),
     "outcome_type": ("two_group",),
     "estimand_change": ("two_group", "paired"),
+    "add_clustering": ("reg_linear", "reg_binary"),
+    "add_confounder": ("reg_linear",),
+    "make_endogenous": ("reg_linear",),
 }
 
 # Which wording kinds each edit supports.
@@ -42,6 +48,9 @@ EDIT_WORDINGS: dict[str, tuple[str, ...]] = {
     "remove_pair_id": ("fixed",),
     "outcome_type": ("fixed", "changed"),
     "estimand_change": ("changed",),
+    "add_clustering": ("changed",),
+    "add_confounder": ("changed",),
+    "make_endogenous": ("changed",),
 }
 
 
@@ -50,7 +59,15 @@ def base_scenario(edit: str, sc: Scenario, wording: str) -> Scenario:
     extra = dict(sc.extra)
     pert = sc.perturbation
     alt = sc.alternative
-    if edit in ("design_flip", "outcome_type", "add_outliers", "small_counts"):
+    if edit in (
+        "design_flip",
+        "outcome_type",
+        "add_outliers",
+        "small_counts",
+        "add_clustering",
+        "add_confounder",
+        "make_endogenous",
+    ):
         pert = "none"
     if edit == "design_flip":
         extra["keep_arm_labels"] = True
@@ -70,7 +87,15 @@ def base_scenario(edit: str, sc: Scenario, wording: str) -> Scenario:
     return Scenario(sc.family, sc.n_regime, sc.effect, pert, alt, sc.prompt_style, sc.seed, sc.domain, sc.k, extra)
 
 
-def make_twin(edit: str, sc: Scenario, sim: Simulated, wording: str) -> tuple[Scenario, Simulated]:
+def make_twin(edit: str, sc: Scenario, sim: Simulated | None, wording: str) -> tuple[Scenario, Simulated | None]:
+    if edit in ("add_clustering", "add_confounder", "make_endogenous"):
+        # spec-level twins: same seed, one design fact changes -> the required SPECIFICATION changes
+        fam = "reg_iv" if edit == "make_endogenous" else sc.family
+        pert = {"add_clustering": "clustered", "add_confounder": "confounded"}.get(edit, "none")
+        return Scenario(
+            fam, sc.n_regime, sc.effect, pert, sc.alternative, sc.prompt_style, sc.seed, sc.domain, sc.k, dict(sc.extra)
+        ), None
+    assert sim is not None
     rng = np.random.default_rng(sc.seed + 7919)
     if edit == "design_flip":
         fam = "paired" if sc.family == "two_group" else "two_group"

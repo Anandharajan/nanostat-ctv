@@ -16,12 +16,14 @@ import numpy as np
 from benchmark.discordance import discordance, sampling_weight
 from benchmark.factory import render
 from benchmark.factory.dgp import FAMILIES, N_REGIMES, PERTURBATIONS, Scenario, Simulated, null_labels, simulate
+from benchmark.factory.regression import REG_FAMILIES, REG_PERTURBATIONS, reference_runs, simulate_reg
 from benchmark.factory.twins import EDIT_FAMILIES, EDIT_WORDINGS, EDITS, base_scenario, make_twin
 from benchmark.keys import write_keys
 from benchmark.reference import build_reference
 from benchmark.split import HELD_OUT_EDITS, assign_split, held_out
+from nanostat.planner import estimand_for
 from nanostat.profiler import profile
-from nanostat.protocol import build_protocol
+from nanostat.protocol import build_protocol, hypothesis_id
 from nanostat.schemas import (
     DGP,
     Action,
@@ -34,6 +36,7 @@ from nanostat.schemas import (
     Study,
     TaskRecord,
 )
+from nanostat.tools import REGISTRY
 from nanostat.verifier import expected_clarification
 
 GENERATOR_VERSION = "0.1.0"
@@ -44,13 +47,20 @@ PROFILES: dict[str, dict[str, int]] = {
     "full": {"singles": 9000, "pairs": 800},
 }
 
-FAMILY_DESIGN = {
+FAMILY_DESIGN: dict[str, Design] = {
     "two_group": Design.independent_two_group,
     "paired": Design.paired,
     "correlation": Design.correlation,
     "k_group": Design.k_group,
     "binary_two_group": Design.independent_two_group,
     "one_proportion": Design.one_sample,
+    "reg_linear": Design.regression,
+    "reg_binary": Design.regression,
+    "reg_iv": Design.regression,
+    "reg_multiarm": Design.regression,
+    "reg_survgroup": Design.survival,
+    "reg_cox": Design.survival,
+    "reg_panel": Design.regression,
 }
 
 
@@ -82,14 +92,18 @@ def _hid(*parts: Any) -> str:
     return hashlib.sha256(json.dumps(parts, sort_keys=True, default=str).encode()).hexdigest()
 
 
+TWO_SIDED_ONLY = ("k_group", "reg_multiarm", "reg_survgroup")
+
+
 def sample_scenario(rng: np.random.Generator, seed: int, family: str | None = None) -> Scenario:
-    fam = family or str(rng.choice(FAMILIES))
-    alt = "two-sided" if fam == "k_group" else str(rng.choice(["two-sided", "two-sided", "greater", "less"]))
+    fam = family or str(rng.choice([*FAMILIES, *REG_FAMILIES]))
+    alt = "two-sided" if fam in TWO_SIDED_ONLY else str(rng.choice(["two-sided", "two-sided", "greater", "less"]))
+    perts = REG_PERTURBATIONS[fam] if fam in REG_FAMILIES else PERTURBATIONS[fam]
     return Scenario(
         family=fam,
         n_regime=str(rng.choice(list(N_REGIMES))),
         effect=str(rng.choice(["null", "borderline", "medium", "large"])),
-        perturbation=str(rng.choice(PERTURBATIONS[fam])),
+        perturbation=str(rng.choice(perts)),
         alternative=alt,
         prompt_style=str(rng.choice(["hint", "no_hint"])),
         seed=seed,
@@ -104,15 +118,80 @@ def sample_scenario(rng: np.random.Generator, seed: int, family: str | None = No
     )
 
 
+def build_reg_task(
+    sc: Scenario, scenario_group: str, member: str = "single", edit: str | None = None, wording: str | None = None
+) -> Built | str:
+    """Model-based families: spec-level keys (benchmark.spec)."""
+    t = simulate_reg(sc)
+    hint = sc.prompt_style == "hint"
+    study = Study(design=t.design if hint else None, outcome=t.outcome if hint else None)
+    protocol = build_protocol(t.question, study)
+    if protocol.alternative != Alternative(sc.alternative):
+        return "protocol_direction_mismatch"
+    adm, inv = reference_runs(t, protocol.alternative)
+    if not adm or adm[0].p is None or not np.isfinite(adm[0].p):
+        return "no_admissible_p"
+    csv_bytes = t.df.to_csv(index=False, lineterminator="\n").encode()
+    tid = "t_" + _hid(GENERATOR_VERSION, asdict(sc) | {"extra": sorted(sc.extra.items())}, member, edit, wording)[:16]
+    preferred = adm[0].method
+    est = estimand_for(preferred)
+    hyp = hypothesis_id(t.design, est)
+    lineage = Lineage(
+        scenario_group=scenario_group,
+        template_group=f"tg_{sc.family}_d{sc.domain}_v0",
+        seed=sc.seed,
+        generator_version=GENERATOR_VERSION,
+    )
+    key = KeyRecord(
+        task_id=tid,
+        dgp=DGP(
+            family=sc.family,
+            h0_true=t.nulls.get(hyp or "", t.h0_true),
+            nulls=t.nulls,
+            effect=sc.effect,  # type: ignore[arg-type]
+            perturbation=sc.perturbation,
+        ),
+        design=t.design,
+        outcome=t.outcome,
+        alternative=protocol.alternative,
+        columns={},
+        admissible=adm,
+        invalid=inv,
+        preferred=preferred,
+        reference_decision="reject" if adm[0].p < protocol.alpha else "fail_to_reject",
+        discordance=discordance(adm, inv),
+        lineage=lineage,
+        policy_cell=f"{t.design.value}/{t.outcome.value}/{sc.perturbation}",
+        required_checks=list(REGISTRY[preferred].required_checks),
+        protocol=protocol,
+        hypothesis=hyp,
+        twin_edit=edit,
+        twin_wording=wording,  # type: ignore[arg-type]
+        gold_model=t.admissible[0][1],
+    )
+    spec_sig = json.dumps(
+        sorted(
+            [(r.method, {k: v for k, v in r.config.items() if k not in ("model",)}) for r in adm], key=lambda x: x[0]
+        ),
+        sort_keys=True,
+        default=str,
+    )
+    task = TaskRecord(task_id=tid, question=t.question, study=study, data_ref=f"csv/{tid}.csv")
+    return Built(task, key, csv_bytes, ("execute", spec_sig, protocol.alternative.value))
+
+
 def build_task(
     sc: Scenario,
-    sim: Simulated,
+    sim: Simulated | None,
     scenario_group: str,
     member: str = "single",
     edit: str | None = None,
     wording: str | None = None,
 ) -> Built | str:
     """Return a Built task or a rejection reason string."""
+    if sc.family in REG_FAMILIES:
+        return build_reg_task(sc, scenario_group, member, edit, wording)
+    assert sim is not None
     variant = int(sc.extra.get("variant", 0))
     if sc.family == "one_proportion" and sim.p0 is not None:
         sc.extra["p0_text"] = f"{int(round(sim.p0 * 100))}%"
@@ -246,7 +325,7 @@ def run_factory(profile_name: str, out: Path, seed: int = 20261126) -> FactoryRe
         rep.attempted += 1
         s = int(rng.integers(1, 2**31 - 1))
         sc = sample_scenario(rng, s)
-        sim = simulate(sc, render.names_for(sc))
+        sim = None if sc.family in REG_FAMILIES else simulate(sc, render.names_for(sc))
         sg = "sg_" + _hid("single", sc.family, sc.n_regime, sc.effect, sc.perturbation, s)[:10]
         b = build_task(sc, sim, sg)
         if isinstance(b, str):
@@ -269,7 +348,7 @@ def run_factory(profile_name: str, out: Path, seed: int = 20261126) -> FactoryRe
         s = int(rng.integers(1, 2**31 - 1))
         sc0 = sample_scenario(rng, s, fam)
         sc = base_scenario(edit, sc0, wording)
-        sim = simulate(sc, render.names_for(sc))
+        sim = None if sc.family in REG_FAMILIES else simulate(sc, render.names_for(sc))
         sg = "sg_pair_" + _hid(edit, fam, s)[:10]
         b1 = build_task(sc, sim, sg, "a", edit, wording)
         if isinstance(b1, str):

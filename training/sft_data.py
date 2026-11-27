@@ -38,6 +38,15 @@ def gold_plan(key: KeyRecord, task: TaskRecord | None = None, df: pd.DataFrame |
         )
     assert key.preferred is not None
     m = key.preferred
+    if key.gold_model is not None:  # model-based design: the gold specification is the target
+        return Plan(
+            action=Action.execute,
+            estimand=estimand_for(m),
+            design=key.design,
+            method=m,
+            model=key.gold_model,
+            rationale=f"{key.design.value}; specification from the study design",
+        )
     pert = key.policy_cell.rsplit("/", 1)[-1]
     allowed = allowed_estimands(key.design, key.protocol)
     cell = lookup(key.design, key.outcome, pert)

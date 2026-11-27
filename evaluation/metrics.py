@@ -12,6 +12,7 @@ import pandas as pd
 from scipy.stats import beta
 
 from benchmark.keys import load_keys
+from benchmark.spec import is_model_key, spec_status
 from nanostat.controller import run_analysis
 from nanostat.planner import Planner, RulePlanner
 from nanostat.schemas import Action, KeyRecord, TaskRecord
@@ -74,6 +75,10 @@ def outcome_from_record(t: TaskRecord, key: KeyRecord, rec: Any) -> TaskOutcome:
     )
     valid = answerable and r.action == Action.execute and r.method in {a.method for a in key.admissible} and alt_ok
     invalid = answerable and r.action == Action.execute and r.method in {b.method for b in key.invalid}
+    if is_model_key(key) and rec.plan is not None:
+        status, _ = spec_status(key, rec.plan.method, rec.plan.model)
+        valid = answerable and r.action == Action.execute and status == "admissible"
+        invalid = answerable and status == "invalid"
     abst = None
     if not answerable:
         abst = (

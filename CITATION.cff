@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use NanoStat-CTV, please cite the software."
 title: "NanoStat-CTV: counterfactual-twin, validity-constrained rewards for small, auditable statistical agents"
-version: 0.3.0
+version: 0.4.0
 date-released: 2026-11-27
 license: Apache-2.0
 authors:

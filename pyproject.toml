@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nanostat-ctv"
-version = "0.3.0"
+version = "0.4.0"
 description = "Small, auditable statistical agents: typed analysis plans, a whitelisted CPU executor, admissible-set rewards and counterfactual design twins."
 readme = "README.md"
 license = { text = "Apache-2.0" }

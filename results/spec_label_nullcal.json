@@ -1,0 +1,209 @@
+{
+  "reg_linear/clustered": {
+    "admissible": {
+      "method": "ols_coef",
+      "k": 22,
+      "n": 500,
+      "rate": 0.044,
+      "ci95": [
+        0.027776767285571744,
+        0.06586100032359485
+      ]
+    },
+    "invalid": {
+      "method": "ols_coef",
+      "reason": "ignores_clustering",
+      "k": 90,
+      "n": 500,
+      "rate": 0.18,
+      "ci95": [
+        0.1473005824992902,
+        0.21653636943708093
+      ]
+    }
+  },
+  "reg_linear/heteroskedastic": {
+    "admissible": {
+      "method": "ols_coef",
+      "k": 28,
+      "n": 500,
+      "rate": 0.056,
+      "ci95": [
+        0.03753044447502219,
+        0.0799213006043601
+      ]
+    },
+    "invalid": {
+      "method": "ols_coef",
+      "reason": "ignores_heteroskedasticity",
+      "k": 104,
+      "n": 500,
+      "rate": 0.208,
+      "ci95": [
+        0.1732391598901203,
+        0.2462552326545882
+      ]
+    }
+  },
+  "reg_linear/confounded": {
+    "admissible": {
+      "method": "ols_coef",
+      "k": 20,
+      "n": 500,
+      "rate": 0.04,
+      "ci95": [
+        0.024601312085545397,
+        0.06110260938824469
+      ]
+    },
+    "invalid": {
+      "method": "ols_coef",
+      "reason": "omitted_confounder",
+      "k": 300,
+      "n": 500,
+      "rate": 0.6,
+      "ci95": [
+        0.5555717992429621,
+        0.6432386279398898
+      ]
+    }
+  },
+  "reg_binary/clustered": {
+    "admissible": {
+      "method": "logistic",
+      "k": 14,
+      "n": 500,
+      "rate": 0.028,
+      "ci95": [
+        0.015390600673838111,
+        0.04653332699148415
+      ]
+    },
+    "invalid": {
+      "method": "logistic",
+      "reason": "ignores_clustering",
+      "k": 37,
+      "n": 500,
+      "rate": 0.074,
+      "ci95": [
+        0.05263510854899523,
+        0.10055887474646992
+      ]
+    }
+  },
+  "reg_binary/confounded": {
+    "admissible": {
+      "method": "logistic",
+      "k": 22,
+      "n": 500,
+      "rate": 0.044,
+      "ci95": [
+        0.027776767285571744,
+        0.06586100032359485
+      ]
+    },
+    "invalid": {
+      "method": "logistic",
+      "reason": "omitted_confounder",
+      "k": 120,
+      "n": 500,
+      "rate": 0.24,
+      "ci95": [
+        0.20319657817464945,
+        0.27990950900327066
+      ]
+    }
+  },
+  "reg_iv/none": {
+    "admissible": {
+      "method": "iv_2sls",
+      "k": 22,
+      "n": 500,
+      "rate": 0.044,
+      "ci95": [
+        0.027776767285571744,
+        0.06586100032359485
+      ]
+    },
+    "invalid": {
+      "method": "ols_coef",
+      "reason": "endogenous_regressor",
+      "k": 494,
+      "n": 500,
+      "rate": 0.988,
+      "ci95": [
+        0.974065072734663,
+        0.9955838277141984
+      ]
+    }
+  },
+  "reg_multiarm/clustered": {
+    "admissible": {
+      "method": "ols_wald",
+      "k": 36,
+      "n": 500,
+      "rate": 0.072,
+      "ci95": [
+        0.05093433312513293,
+        0.09828743733685696
+      ]
+    },
+    "invalid": {
+      "method": "ols_wald",
+      "reason": "ignores_clustering",
+      "k": 108,
+      "n": 500,
+      "rate": 0.216,
+      "ci95": [
+        0.18069913602366128,
+        0.25469790622703103
+      ]
+    }
+  },
+  "reg_cox/confounded": {
+    "admissible": {
+      "method": "cox_ph",
+      "k": 31,
+      "n": 500,
+      "rate": 0.062,
+      "ci95": [
+        0.04251106129638552,
+        0.08685259747910139
+      ]
+    },
+    "invalid": {
+      "method": "cox_ph",
+      "reason": "omitted_confounder",
+      "k": 208,
+      "n": 500,
+      "rate": 0.416,
+      "ci95": [
+        0.3724048761713199,
+        0.46059418833407234
+      ]
+    }
+  },
+  "reg_panel/none": {
+    "admissible": {
+      "method": "mixed_lm",
+      "k": 22,
+      "n": 500,
+      "rate": 0.044,
+      "ci95": [
+        0.027776767285571744,
+        0.06586100032359485
+      ]
+    },
+    "invalid": {
+      "method": "ols_coef",
+      "reason": "ignores_repeated_measures",
+      "k": 2,
+      "n": 500,
+      "rate": 0.004,
+      "ci95": [
+        0.0004847861762900011,
+        0.014374078562200309
+      ]
+    }
+  }
+}

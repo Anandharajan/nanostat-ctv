@@ -13,6 +13,7 @@ from typing import Any
 import pandas as pd
 
 from benchmark.keys import load_keys  # noqa: F401  (re-export for the reward process)
+from benchmark.spec import is_model_key, spec_status
 from nanostat.controller import execute_plan
 from nanostat.dsl import PreprocessError
 from nanostat.planner import parse_plan
@@ -93,7 +94,11 @@ def score_plan(
         return Scored(w.invalid_penalty, True, method=plan.method, action="execute", failure="fabricated_number")
 
     method = plan.method or ""
-    in_B = method in {b.method for b in key.invalid}
+    if is_model_key(key):  # regression / survival: admissibility is judged at SPEC level
+        status, _why = spec_status(key, plan.method, plan.model)
+        in_B, spec_ok = status == "invalid", status == "admissible"
+    else:
+        in_B, spec_ok = method in {b.method for b in key.invalid}, True
     rep = verify(plan, df, profile(df), study, question, protocol=key.protocol)
     forbidden = any(e.startswith(("forbidden", "protocol_violation", "wrong_tail")) for e in rep.errors)
     if in_B or forbidden:
@@ -115,7 +120,7 @@ def score_plan(
     if p is None or math.isnan(p):
         return Scored(0.0, False, method=method, action="execute", failure="nan_p")
 
-    in_A = method in {a.method for a in key.admissible}
+    in_A = method in {a.method for a in key.admissible} and spec_ok
     refs = [a.p for a in key.admissible if a.p is not None]  # max over A(x, e) only
     p_close = max((math.exp(-abs(zc(p) - zc(pa))) for pa in refs), default=0.0)
     concl = float(res.decision == key.reference_decision)

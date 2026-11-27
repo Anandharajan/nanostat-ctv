@@ -135,6 +135,8 @@ def build_task_table(data_dir: Path, splits: tuple[str, ...] = ("train", "dev", 
         for line in (data_dir / "tasks" / f"{sp}.jsonl").read_text(encoding="utf-8").splitlines():
             t = TaskRecord.model_validate_json(line)
             k = keys[t.task_id]
+            if k.gold_model is not None:
+                continue  # the proxy policy has no specification head; model-based tasks are LLM-only
             df = pd.read_csv(data_dir / t.data_ref)
             prof = profile(df)
             rows = [_row(k, t, df, prof, a) for a in CATALOGUE]

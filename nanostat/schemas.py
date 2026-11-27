@@ -324,6 +324,9 @@ class KeyRecord(_Strict):
     required_checks: list[Check] = Field(default_factory=list)
     protocol: Protocol = Field(default_factory=Protocol)
     hypothesis: str | None = None
+    # Model-based designs: the registry-preferred gold specification. Admissibility for these designs is
+    # judged at SPEC level by benchmark.spec (MethodRun.config carries the requirements / bad patterns).
+    gold_model: ModelSpec | None = None
 
 
 # ---- result (SPEC §5.4) ---------------------------------------------------------------

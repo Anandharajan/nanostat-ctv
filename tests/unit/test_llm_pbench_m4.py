@@ -73,9 +73,9 @@ def test_llm_eval_harness_is_resumable(server, smoke_data: Path, tmp_path: Path)
     def gen(trial: int):
         return OpenAICompatClient("mock-1.5b", server).generate
 
-    r1 = run_llm_eval(smoke_data, "dev", gen, "B1:mock", traces, trials=1, max_steps=1, limit=5)
+    r1 = run_llm_eval(smoke_data, "train", gen, "B1:mock", traces, trials=1, max_steps=1, limit=5)
     n1 = len(traces.read_text().splitlines())
-    r2 = run_llm_eval(smoke_data, "dev", gen, "B1:mock", traces, trials=1, max_steps=1, limit=5)
+    r2 = run_llm_eval(smoke_data, "train", gen, "B1:mock", traces, trials=1, max_steps=1, limit=5)
     assert n1 == len(traces.read_text().splitlines()) == 5 and r1["n_rows"] == r2["n_rows"] == 5
     assert r1["first_attempt_json_valid_rate"] == 1.0
     row = json.loads(traces.read_text().splitlines()[0])

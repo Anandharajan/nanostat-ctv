@@ -96,6 +96,8 @@ If a needed fact is missing — e.g. the description says the same people were m
 | Regression (`design: regression`, typed `model`) | OLS coefficient (classical, HC0–HC3, cluster-robust, WLS), Wald/F restriction, logistic, probit, 2SLS (IV), linear mixed model, Tobit |
 | Survival (`design: survival`) | log-rank, Cox PH (Efron/Breslow) |
 
+The synthetic factory also generates **regression/survival tasks with specification-level answer keys** (right covariates, SE type, clustering level, instrument) and spec twins: see [docs/REGRESSION_FAMILIES.md](docs/REGRESSION_FAMILIES.md).
+
 Every method is checked against an **independent textbook implementation** on ≥5 fixtures (`tests/unit/test_tools_fixtures.py`).
 
 The **policy registry** (`configs/policies/m0_m1.yaml`, v0.2.0) lists, per *(design, outcome, data perturbation)* cell and **per estimand**, which methods are admissible and which are invalid with a reason (e.g. `student_t: outlier_driven_inference`, `mann_whitney: estimand_mismatch` for a mean question). Every cell is currently `reviewed_by: PENDING` — no statistician has signed it off yet.

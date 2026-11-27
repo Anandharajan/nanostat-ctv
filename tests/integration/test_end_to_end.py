@@ -30,9 +30,14 @@ def test_smoke_tasks_end_to_end(smoke_data: Path):
 
 
 def test_rule_planner_is_valid_on_answerable_smoke_tasks(smoke_data: Path):
+    """B0 is valid on every answerable task it can plan: all non-model designs. Model-based tasks state no
+    roles or model (P-Bench style), so B0 asks for clarification there by design."""
     summ, outs = evaluate_split(smoke_data, "train")
-    assert summ.metrics["method_validity_rate"]["rate"] == 1.0
+    non_model = [o for o in outs if o.answerable and not o.family.startswith("reg_")]
+    assert non_model and all(o.valid for o in non_model)
     assert summ.metrics["invalid_method_rate"]["k"] == 0
+    model = [o for o in outs if o.family.startswith("reg_")]
+    assert model and all(o.action in ("clarify", "abstain") and o.operational_failure is None for o in model)
 
 
 def test_controller_with_mocked_llm(paired_long):

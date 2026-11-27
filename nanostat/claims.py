@@ -15,7 +15,7 @@ _GREATER = (
     r"\bboost\w*",
     r"\bmore than\b",
     r"\bexceed\w*",
-    r"\bpositively\b",
+    r"\bpositive(ly)?\b",
     r"\blarger\b",
 )
 _LESS = (
@@ -24,7 +24,7 @@ _LESS = (
     r"\breduc\w*",
     r"\bless than\b",
     r"\bfewer\b",
-    r"\bnegatively\b",
+    r"\bnegative(ly)?\b",
     r"\bsmaller\b",
     r"\bworsen\w*",
     r"\bdrop\w*",
@@ -41,8 +41,12 @@ _PAIRING = (
 )
 
 
+_IDENT = re.compile(r"[a-z0-9]*_[a-z0-9_]*")
+
+
 def infer_alternative(question: str) -> Alternative:
-    q = question.lower()
+    # snake_case identifiers (variable names such as `dropped_out`) are not claim words
+    q = _IDENT.sub(" ", question.lower())
     g = any(re.search(p, q) for p in _GREATER)
     l_ = any(re.search(p, q) for p in _LESS)
     if g and not l_:

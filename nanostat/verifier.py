@@ -114,7 +114,7 @@ def expected_clarification(question: str, study: Study, df: pd.DataFrame, prof: 
         return ReasonCode.missing_pair_id
     if study.design == Design.one_sample and study.p0 is None:
         return ReasonCode.missing_null_value
-    if not roles:
+    if not roles and study.model is None:
         return ReasonCode.design_unspecified
     return None
 

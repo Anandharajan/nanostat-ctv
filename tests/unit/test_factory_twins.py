@@ -28,8 +28,15 @@ def test_twins_share_split_and_change_gold(smoke_data: Path):
     for a, b in pairs:
         assert tasks[a.task_id][0] == tasks[b.task_id][0] == a.split == b.split
         assert a.twin_edit == b.twin_edit
-        gold_a = (a.abstain_target, a.preferred, a.alternative, tuple(sorted(m.method for m in a.admissible)))
-        gold_b = (b.abstain_target, b.preferred, b.alternative, tuple(sorted(m.method for m in b.admissible)))
+
+        def sig(k):  # method AND specification requirements (spec twins keep the method name)
+            req = sorted(
+                json.dumps([m.method, {x: y for x, y in m.config.items() if x != "model"}], sort_keys=True)
+                for m in k.admissible
+            )
+            return (k.abstain_target, k.preferred, k.alternative, tuple(req))
+
+        gold_a, gold_b = sig(a), sig(b)
         assert gold_a != gold_b, a.twin_edit
 
 
