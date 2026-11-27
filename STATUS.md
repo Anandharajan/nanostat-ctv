@@ -1,45 +1,51 @@
 # STATUS
-Milestone: M1 (CPU) complete except second-machine bundle check · Release: v0.1.0 · Date: 2026-11-26
+Milestone: SPEC v3.1 Step 2 (P0 correctness) done; Step 3 scorer done (loader/preflight BLOCKED); CPU ablation done · Release: v0.2.0 · Date: 2026-11-27
 
-## Done this session
-- M0: repo skeleton (SPEC §12), §5 schemas (Pydantic v2, `extra="forbid"`), preprocess DSL, 7 M0 tools + 5 M1 tools + Yuen trimmed t, profiler, diagnostics, verifier, rule planner (B0), controller with LLM-planner interface (mock-tested), CLI (`analyze`, `bundle`, `factory`, `eval`, `train --stage sft-data`, `serve`), local FastAPI.
-- M1: policy registry (17 cells, all `reviewed_by: PENDING`), task factory, reference solver, discordance D(x), 6 twin edits (wording-fixed + wording-changed; `outcome_type` and `small_counts` held out for test), lineage splits, key store, minimal audit bundle (hash-chained events, standalone `analysis.py`, manifest).
-- Ahead of milestone (CPU-only, unit-tested, never used in training): CTV reward (§7.4), Fisher-style comparator reward, validity constraint (§7.6), twin-joint advantage (§7.5), discordance sampler, programmatic SFT data builder, NanoStat-Bench metrics, agent-level null calibration.
-- Bugs found by the pilot runs and fixed with regression tests: χ² crash on an all-zero outcome column; constant binary outcome fell through to Welch with p = NaN; outlier DGPs contaminated one group / one direction so "null" scenarios were not true nulls.
+## Done this session (master plan of 27 Nov 2026)
+- **Step 1:** `docs/AUDIT.md`, `docs/FISHER_R1_BASELINE.md` (published values, not re-run, transcribed from the master plan), `docs/LEADERBOARDS.md` (not re-verified), `VALIDATION_PLAN.md`, `REQUIREMENTS_TRACEABILITY.md`, SPEC §21 (v3.1 addendum), CLAUDE.md permanent policy lines.
+- **Step 2.1:** invalid/unknown methods rejected in confirmatory mode; diagnostic mode (`nanostat analyze --diagnostic`) returns no decision.
+- **Step 2.2:** `Protocol` lock (alpha, direction, estimand family, p0, population); plan changes are rejected and penalised.
+- **Step 2.3:** estimand-keyed policy registry v0.2.0; `permutation_test` tool (exact + seeded Monte Carlo) so mean protocols stay answerable under outliers/skew; k-group + unequal variance now has no admissible method (abstain target).
+- **Step 2.4:** two-gate verification; the executor runs exactly the verified analysed rows; `analysed_sha256` in results and the audit log.
+- **Step 2.5:** evidence-grounded assumption reward (typed verdicts must match the CPU reading).
+- **Step 2.6:** per-hypothesis null labels; null calibration judges each rejection against the null of the executed test; fixed-method arms on the same simulations.
+- **Step 2.7:** `ScenarioConstraint` with binomial tolerances and per-scenario power references.
+- **Step 2.8:** group-exclusive splits (edits, template domain 4, scenario correlation/skewed).
+- **Twins:** 7th edit `estimand_change`.
+- **Step 3.3:** clean-room P-Bench scorer + fixture sheet.
+- **Ablation:** `training/ablation/` + `nanostat ablate`: S0, R-F, R-A, R-AD, R-ADT, R-CTV, R-CTV-abs with a CPU proxy policy.
 
 ## Commands run (exact)
-- `pytest -p no:cacheprovider` → 151 passed
-- `ruff check .` → All checks passed; `ruff format --check .` → clean; `mypy` → no issues in 36 source files
-- Clean venv: `pip install .` (non-editable wheel), then `nanostat version`, `nanostat analyze ... --rules-only`, `nanostat factory --profile smoke` from outside the repo → OK (policies load from packaged `_policies`, 17 cells)
-- `nanostat factory --profile pilot --out <tmp>/pilot` → tasks=1400 twin_pairs=200 splits={train: 1026, test: 242, dev: 132} rejected=49 duplicates=0 (29.5 s)
-- `nanostat eval --arms B0 --suite nanostat --data <tmp>/pilot --split dev|test`
-- `nanostat eval --arms B0 --suite nullcal --sims 1000` (3 min 19 s)
-
-- GitHub Actions run #1: Windows 3.10/3.12 passed; Ubuntu 3.10/3.12 failed in pytest (`..\x` accepted by `safe_join` on Linux). Fixed in commit "M1: reject backslash traversal in safe_join on all platforms". Run #2: all 4 jobs passed (ubuntu/windows x 3.10/3.12: ruff, mypy, pytest, CLI smoke).
-- Fresh venv: `pip install git+https://github.com/Anandharajan/nanostat-ctv` + README quickstart -> same output as README.
+- `pytest -p no:cacheprovider` → 197 passed
+- `ruff check .` → All checks passed; `ruff format --check .` → clean; `mypy` → no issues in 38 source files
+- `nanostat eval --arms B0 --suite nullcal --sims 1000 --out results/nullcal/b0_nullcal_v3_1.json` (9 min 18 s)
+- `nanostat factory --profile pilot --out <tmp>/pilot31` → tasks=1400 twin_pairs=200 splits={train: 794, test: 505, dev: 101} rejected=49 duplicates=0
+- reward/null table build (1,400 tasks × 18 actions; 3,000 null sims × 18 actions), then `nanostat ablate --data <tmp>/pilot31 --seeds 1,2,3,4,5 --updates 300 --out results/ablation_cpu` (≈ 31 s)
+- `nanostat eval --arms B0 --suite nanostat --data <tmp>/pilot31 --split dev|test --out results/b0_<split>.json`
 
 ## Measured (never estimated)
-- B0 dev: method validity 127/127, invalid 0/127, twin consistency 15/15, abstention 5/5, operational failures 0/132.
-- B0 test: method validity 239/239, invalid 0/239, twin consistency 74/74, abstention 3/3, operational failures 0/242.
-  - Circular by construction (keys and B0 share registry + diagnostics); consistency check only.
-- D(x) histogram (pilot, 10 bins from 0.0): 879, 128, 74, 29, 17, 67, 32, 44, 41, 89.
-- B0 agent-level FPR (1000 sims each): see README table. Liberal: two-group clean small 0.065 [0.051, 0.082]; correlation with leverage points 0.072 [0.057, 0.090]. Others within or below 0.05 ± CI.
+- CPU ablation (proxy policy, locked test, 5 seeds): method validity R-F 0.891 ± 0.065 → R-CTV 0.977 ± 0.012; invalid-method rate 0.105 → 0.010; twin consistency 0.605 → 0.691; Strict (single reference) 0.889 → 0.941. R-CTV − R-F (Holm): validity +0.086 [+0.067, +0.106], twins +0.086 [+0.045, +0.136], agent FPR +0.001 [−0.002, +0.004] (no difference).
+- Negative: discordance sampling starves abstention (R-A 0.440 → R-AD 0.064). Post-hoc R-CTV-abs restores 0.508 at a validity cost (0.922).
+- Constraint V: no measurable effect in this setting (all RL arms ≈ 4.4% agent FPR).
+- B0 null calibration: all agent FPRs within or below 0.05 ± CI; the earlier 6.5% flag resolved as Monte Carlo variation (fixed Welch identical on the same sims, CI 0.049–0.080). Registry invalid labels confirmed: Student t 0.141 and permutation 0.145 under unequal variance; Pearson 0.488 under leverage.
+- B0 locked test (circular): 455/455 valid, 0 invalid, 88/88 twin pairs, 50/50 abstentions, 0/505 operational failures.
 
-## NOT RUN
-- M1 exit item "ZIP reproduces on a second machine": tested only in a fresh isolated Python process on the same machine.
-- Python–R parity: `Rscript` not installed → `parity.json` reports NOT RUN.
-- M2–M8: base model, SFT, CTV-GRPO, arms B1/S0/R-*, P-Bench, M4 plugins, clustering twins, pilot users.
-
-## Blockers
-- GPU (T4) needed for M2+. Statistician review needed before any confirmatory run (all policy cells PENDING).
+## NOT RUN / BLOCKED
+- P-Bench download, preflight, 17-category mapping, coverage ceiling → **BLOCKED: needs maintainer approval to download `May2222/P-Bench`.**
+- M4 plugins and clustering twin (largest P-Bench Hard lever) → MISSING.
+- Step 5 typed inspect/diagnose loop, schema-constrained decoding → PLANNED.
+- All LLM work (SFT, GRPO arms, FP16 LoRA vs NF4 profiling) → NOT RUN (no GPU; Colab/Kaggle notebooks still to be written).
+- Statistician sign-off of policy cells → BLOCKED. Independent (non-circular) test set → PLANNED.
+- CI for this push: result to be recorded after the GitHub Actions run.
 
 ## Next action
-- Second-machine bundle reproduction (M1 exit).
-- M2: HF loader (NF4), typed-plan prompting, programmatic SFT on a T4; measure VRAM and tokens/s.
+1. Approve the P-Bench download → preflight + coverage ceiling (decides the M4 plugin order).
+2. Implement M4 plugins in coverage order with R parity.
+3. Write the Kaggle/Colab notebooks for SFT + CTV-GRPO on the code paths the CPU ablation already exercises.
 
-## Artifact hashes (pilot, seed 20261126, generator 0.1.0)
-- tasks/train.jsonl: sha256:51aee801870745328b586affa87b6607abbda5b2e18c90e9f84077093a18a234
-- tasks/dev.jsonl: sha256:fb049b8a0c02299a4351675ae952c732f4183d6f3cc41bb393cdf7e8d3f3eb0c
-- tasks/test.jsonl: sha256:b9afbdea975b99c0992fcd211244269c31587915b6ef6f04a6238b2a73eafdba
-- keys/keys.jsonl: sha256:063df7e9217bf62d4a7a97594879aa31336767f6ea252f577318391fddf81dff
-- manifests/split_manifest.csv: sha256:e2748558a6e0dafdeda1e10af399fd07959b10495f3ed90c47497b760524906e
+## Artifact hashes (pilot, seed 20261126, generator 0.1.0 + v3.1)
+- tasks/train.jsonl: sha256:2ab5390cb85794fd50f03f4d3d94308a04badf531f88b5d2fa4800bb7aafdb98
+- tasks/dev.jsonl: sha256:c50e66d7242cb4c7d6423d17c4adcbac9e02aedba1274c202555870f8f564860
+- tasks/test.jsonl: sha256:f329570b959db7513a491dcffaa454d34800f0fba49d4ec4e0b2073d421a431d
+- keys/keys.jsonl: sha256:dd58bae10577541b5e1fd610ee71241e1c1c4fb3386cd647b1acaa8cf4bcc8b0
+- manifests/split_manifest.csv: sha256:ab18ceea3ffa604e8bbc5ec4f33f056f7eab02f3e30029246c255fbe592e2c0d

@@ -17,3 +17,9 @@ Rules
 12. End every session by updating STATUS.md (done, commands, measured numbers, blockers, next action).
 
 First task: M0 — create the repo skeleton from SPEC.md §12, implement §5 schemas, the seven M0 tools with fixtures, the verifier tests in §13, the rule planner and `nanostat analyze --rules-only`. Stop when CI is green and report.
+
+Permanent policy (v3.1)
+- Commits/PRs are authored by Anandharajan only; never add Claude as co-author or contributor.
+- Fisher-R1 code has no licence: read only, implement clean-room.
+- Any download, upload, email, submission or publication requires explicit maintainer approval.
+- Before any public release, confirm the IP gate (provisional patent filed or decision not to file).

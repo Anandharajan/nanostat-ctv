@@ -576,3 +576,33 @@ First task: M0 — create the repo skeleton from SPEC.md §12, implement §5 sch
 9. Hugging Face Community Evals / eval results docs, huggingface.co/docs/hub/eval-results.
 
 Verify every reference against the primary record before manuscript submission.
+
+---
+
+## 21. Version 3.1 addendum (27 November 2026)
+
+This addendum supersedes conflicting text above. Source: maintainer's master plan of 27 Nov 2026.
+
+### 21.1 Scientific-correctness requirements (P0, implemented)
+1. **Invalid/unknown gating.** In confirmatory mode a method in B(x,e) or of unknown status is rejected by the verifier; the controller re-plans and finally abstains (`no_admissible_method`). Diagnostic mode may execute it but returns no decision (`Result.confirmatory = false`).
+2. **Protocol lock.** `Protocol(alpha, alternative, estimand_family, p0, allow_population_filters)` is fixed by the task/user (`nanostat/protocol.py`). Plan fields that restate it must match; any difference is rejected and penalised (−0.2) by the reward.
+3. **Estimand-conditioned admissible sets.** Policy cells key methods by estimand; A(x,e) = methods of the protocol's estimands; B(x,e) adds `estimand_mismatch`. Rp uses max over A(x,e) only. A permutation test was added so mean-difference protocols remain answerable under outliers/skew.
+4. **Two-gate verification.** Gate 1 validates the plan and the preprocessing ops against the protocol; gate 2 executes preprocessing, re-profiles and re-verifies design, pairing, groups, estimand and method status on the analysed rows, which are hashed (`analysed_sha256`) and are exactly the rows tested.
+5. **Evidence-grounded assumption reward.** `r_assume` credits a required check only when the plan's typed verdict (`ok`/`violated`) matches the CPU's reading of the executed diagnostic; irrelevant claims are penalised.
+6. **Hypothesis-specific nulls.** DGPs carry `nulls: {hypothesis: bool}`; a rejection is a false positive only for the hypothesis of the executed test (e.g. Spearman ↔ independence, Welch ↔ equal means).
+7. **Scenario-specific constraints.** `FPR_s ≤ α + ε_s`, `Power_s ≥ PowerRef_s − δ_s`; ε_s, δ_s are one-sided 95% binomial tolerances on the EMA-effective sample; PowerRef_s is the preferred method's power per scenario from training keys.
+8. **Group-exclusive splits.** Held out for the locked test split: twin edits `outcome_type`, `small_counts`; template domain 4; scenario family (correlation, skewed). Twins always co-located.
+
+### 21.2 Twins
+Seven edits: design flip, add outliers, tail flip, small counts, remove pair ID, outcome type, **estimand change** (mean ↔ typical). Clustering twin remains blocked on the M4 OLS plugin.
+
+### 21.3 Targets
+- PRIMARY: R-CTV vs R-F on method validity, agent-level FPR, twin consistency (Holm); non-inferiority on Strict pass@1, margin −3 pp; operational failure ≤ 5%; peak reserved VRAM ≤ 14 GiB.
+- STRETCH (not expected): Easy/Hard Strict pass@1 70/40; pass@3 80/50.
+- Two comparisons are kept separate: internal (R-CTV vs R-F, matched compute) and external (published Fisher-R1 values, labelled not re-run; optionally Fisher-R1-7B re-run on our harness).
+
+### 21.4 Experiment matrix and compute (GPU, NOT RUN)
+Arms B0, B1, B2 (iterative diagnostics), B3 (method-doc retrieval), S0, R0, R-F, R-A, R-AD, R-ADT, R-CTV, R-CTV-Agent; optional B4, S1, R-CTV-DAPO. Seeds: 3 for R-F and R-CTV(-Agent), 1 otherwise. Full P-Bench 425 × 3 only for B1, S0, R-F, R-CTV-Agent. Budget ≈ 120–170 GPU-h on Colab + Kaggle free tiers. Profile FP16 LoRA vs NF4 QLoRA first and record the choice. Fallback: CTV-ranked DPO, labelled NOT GRPO.
+
+### 21.5 CPU ablation (implemented)
+`nanostat ablate` trains a linear-softmax proxy policy over an 18-action typed-plan catalogue with the six arms S0, R-F, R-A, R-AD, R-ADT, R-CTV at matched budget, using the real reward server, sampler, twin-joint advantage and scenario constraint. It isolates the effect of the training signal; it is not the language model. Results: `docs/ABLATION_RESULTS.md`.

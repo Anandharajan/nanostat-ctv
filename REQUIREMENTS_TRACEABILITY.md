@@ -1,0 +1,31 @@
+# Requirements traceability (SPEC v3.1)
+
+Status vocabulary: **IMPLEMENTED+TESTED**, IMPLEMENTED-UNTESTED, PARTIAL, MISSING, BLOCKED, PLANNED, NOT RUN.
+Every row must point to code and to a test or an evidence file. Updated 2026-11-27.
+
+| ID | Requirement | SPEC | Code | Test / evidence | Status |
+|---|---|---|---|---|---|
+| R-SCH | Typed plan, strict schemas | §5 | `nanostat/schemas.py` | `tests/unit/test_verifier.py::test_plan_schema_is_strict` | IMPLEMENTED+TESTED |
+| R-TOOL | 14 whitelisted tools vs independent references (≥5 fixtures) | §6.1 | `nanostat/tools/` | `tests/unit/test_tools_fixtures.py` (incl. exact permutation enumeration) | IMPLEMENTED+TESTED |
+| R-P0-1 | Invalid / unknown methods never give a confirmatory decision; diagnostic mode only | v3.1 §2.1 | `nanostat/verifier.py::_gate2`, `controller.py` | `test_verifier.py::test_invalid_method_*`, `::test_estimand_mismatch_rejected_in_confirmatory_mode` | IMPLEMENTED+TESTED |
+| R-P0-2 | Protocol lock (alpha, direction, estimand, p0, population) immutable to the model | v3.1 §2.2 | `nanostat/protocol.py`, `verifier.py::_gate1` | `test_verifier.py::test_protocol_fields_are_locked`, `test_reward_constraint.py::test_changing_locked_protocol_never_increases_reward` | IMPLEMENTED+TESTED |
+| R-P0-3 | Estimand-conditioned A(x,e), B(x,e); Rp max over A(x,e) only | v3.1 §2.3 | `configs/policies/m0_m1.yaml` (v0.2.0), `nanostat/policy.py` | `test_verifier.py::test_estimand_lock_mean_vs_location`, `test_factory_twins.py::test_estimand_change_twin_flips_method` | IMPLEMENTED+TESTED |
+| R-P0-4 | Two-gate verification on analysed rows; analysed-row hash | v3.1 §2.4 | `verifier.py::_gate1/_gate2`, `controller.py::execute_plan` | `test_verifier.py::test_gate2_*` | IMPLEMENTED+TESTED |
+| R-P0-5 | Evidence-grounded assumption reward (no credit for listing checks) | v3.1 §2.5 | `diagnostics.py::cpu_verdicts`, `verifier.py::assumption_score` | `test_reward_constraint.py::test_assumption_credit_is_evidence_grounded`, `::test_listing_every_check_earns_nothing_extra` | IMPLEMENTED+TESTED |
+| R-NULL | Hypothesis-specific null labels; FPR only where the tested null is true | v3.1 §2.6 | `benchmark/factory/dgp.py::null_labels`, `benchmark/nullcal.py`, `reward_server.py::batch_stats` | `test_factory_twins.py::test_null_labels_are_hypothesis_specific`, `test_reward_constraint.py::test_batch_stats_use_hypothesis_of_executed_test`; evidence `results/nullcal/b0_nullcal_v3_1.json` | IMPLEMENTED+TESTED |
+| R-CONS | Scenario-specific constraints with binomial tolerances and per-scenario PowerRef | v3.1 §2.7 | `training/constraint.py::ScenarioConstraint` | `test_reward_constraint.py::test_scenario_constraint_bites_only_where_liberal` | IMPLEMENTED+TESTED |
+| R-SPLIT | Group-exclusive splits (edits, domains, scenario families); twins co-located | v3.1 §2.8 | `benchmark/split.py`, `factory/grid.py` | `test_factory_twins.py::test_group_exclusive_splits`, `::test_twins_share_split_and_change_gold` | IMPLEMENTED+TESTED |
+| R-TWIN | 7 twin edits incl. estimand change; wording-fixed and -changed | §7.3 | `benchmark/factory/twins.py` | `test_factory_twins.py` | IMPLEMENTED+TESTED (clustering twin MISSING: needs M4 OLS) |
+| R-DISC | Discordance D(x) and sampling weights | §7.2 | `benchmark/discordance.py`, `training/sampler.py` | `test_reward_constraint.py::test_discordance_score` | IMPLEMENTED+TESTED |
+| R-ADV | Twin-joint advantage | §7.5 | `training/constraint.py::twin_joint_advantage` | `test_reward_constraint.py::test_twin_joint_advantage` | IMPLEMENTED+TESTED |
+| R-RF | Fisher-R1-style comparator reward (no A/B knowledge, operational gate only) | §8 R-F | `reward_server.py::score_fisher` | `test_reward_constraint.py::test_fisher_reward_*` | IMPLEMENTED+TESTED |
+| R-ABL | Matched-compute ablation S0, R-F, R-A, R-AD, R-ADT, R-CTV | §8 | `training/ablation/` | `tests/unit/test_ablation.py`; evidence `docs/ABLATION_RESULTS.md` | IMPLEMENTED+TESTED (CPU proxy policy; LLM arms NOT RUN) |
+| R-PB-SC | Clean-room P-Bench scorer (Raw/Strict/Relaxed, pass@1/3, boundaries) | v3.1 Step 3.3 | `benchmark/pbench/score.py` | `tests/unit/test_pbench_scorer.py` | IMPLEMENTED+TESTED |
+| R-PB-PF | P-Bench loader, preflight, 17-category mapping, coverage ceiling | v3.1 Steps 3.1–3.2 | — | — | BLOCKED (download needs maintainer approval) |
+| R-M4 | OLS/robust/cluster, logistic, probit, log-rank, Cox, IV, mixed, Tobit | §6.1 M4 | — | — | MISSING |
+| R-AGENT | inspect/diagnose action loop, schema-constrained decoding | v3.1 Step 5 | — | — | PLANNED |
+| R-LLM | SFT, CTV-GRPO on T4/Kaggle, arms B1/S0/R-* with the 1.5B model | §7, §8 | `training/sft_data.py` (data only) | — | NOT RUN (no GPU here) |
+| R-AUDIT | Hash-chained audit bundle, standalone rerun | §10 | `nanostat/audit/` | `tests/integration/test_end_to_end.py::test_bundle_reproduces_in_fresh_process` | IMPLEMENTED+TESTED (second machine NOT RUN) |
+| R-SEC | No eval/exec/subprocess outside R worker; traversal; network guard | §13 | `nanostat/security.py` | `tests/unit/test_security_leakage.py` | IMPLEMENTED+TESTED |
+| R-LEAK | Policy-side code never imports keys (grep + import graph) | §13 | — | `tests/unit/test_security_leakage.py` (extended to protocol and ablation policy modules) | IMPLEMENTED+TESTED |
+| R-REVIEW | Statistician sign-off on every policy cell | §6.2 | `configs/policies/m0_m1.yaml` | all cells `reviewed_by: PENDING` | BLOCKED (needs a statistician) |
