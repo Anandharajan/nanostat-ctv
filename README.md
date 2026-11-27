@@ -4,7 +4,7 @@
 
 NanoStat-CTV turns a research question + a CSV into a **typed analysis plan** (JSON), checks the plan against your design and data, runs it with a whitelisted CPU executor, and returns a result, a clarification request, or a justified abstention — plus a reproducible audit bundle.
 
-> **Status — v0.2.0 (CPU release).** Executor, two-gate verifier with a locked analysis protocol, rule-based planner, CLI, local API, audit bundle, synthetic benchmark factory, the CTV reward/constraint library, a clean-room P-Bench scorer and a measured CPU ablation of the training signal are implemented and tested. **The 1.5B LLM planner has not been trained** (GPU milestones: NOT RUN). Today the planner is a deterministic rule system. See [STATUS.md](STATUS.md), [docs/AUDIT.md](docs/AUDIT.md) and [docs/limitations.md](docs/limitations.md).
+> **Status — v0.3.0 (CPU release).** Executor, two-gate verifier with a locked analysis protocol, rule-based planner, CLI, local API, audit bundle, synthetic benchmark factory, the CTV reward/constraint library, a clean-room P-Bench scorer and pinned P-Bench harness (coverage ceiling 97.9%), nine model-based tools (OLS/robust/cluster, Wald/F, logistic, probit, 2SLS, log-rank, Cox, mixed, Tobit), a local-LLM planner via [Magnitude](docs/LOCAL_LLM_VALIDATION.md), and a measured CPU ablation of the training signal are implemented and tested. **The 1.5B LLM planner has not been trained** (GPU milestones: NOT RUN). Today the planner is a deterministic rule system. See [STATUS.md](STATUS.md), [docs/AUDIT.md](docs/AUDIT.md) and [docs/limitations.md](docs/limitations.md).
 
 ## Quickstart (≈2 minutes, CPU only)
 
@@ -93,6 +93,8 @@ If a needed fact is missing — e.g. the description says the same people were m
 | Correlation | Pearson, permutation (Pearson r), Spearman |
 | k groups | one-way ANOVA, Kruskal–Wallis |
 | One-sample proportion | exact binomial |
+| Regression (`design: regression`, typed `model`) | OLS coefficient (classical, HC0–HC3, cluster-robust, WLS), Wald/F restriction, logistic, probit, 2SLS (IV), linear mixed model, Tobit |
+| Survival (`design: survival`) | log-rank, Cox PH (Efron/Breslow) |
 
 Every method is checked against an **independent textbook implementation** on ≥5 fixtures (`tests/unit/test_tools_fixtures.py`).
 

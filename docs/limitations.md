@@ -11,9 +11,11 @@ Read this before using NanoStat-CTV for anything that matters.
 | Task factory, reference solver, discordance, twins (7 edit types; clustering twin missing), group-exclusive splits, key store | Built and tested |
 | CTV reward, Fisher-style comparator reward, scenario validity constraint, twin-joint advantage, sampler, SFT data builder | Built and unit-tested; used only in the **CPU proxy-policy ablation**, never to train an LLM |
 | LLM planner (Qwen2.5-Coder-1.5B + LoRA), SFT, CTV-GRPO, arms B1/S0/R-* | **NOT RUN** (milestones M2–M5 need a GPU) |
-| M4 methods (OLS/cluster-robust, logistic, survival, mixed models, IV…), clustering twins | **Not implemented** |
+| M4 methods (OLS/HC/cluster, Wald/F, logistic, probit, 2SLS, log-rank, Cox, mixed, Tobit) | Built and reference-tested; **R parity NOT RUN**; whether a *specification* (covariates, SE type, clustering) is right is not judged by the registry |
+| Clustering twins | **Not implemented** |
 | P-Bench scorer | Built and fixture-tested (clean-room) |
-| P-Bench download, preflight, coverage ceiling, evaluation | **BLOCKED / NOT RUN** (download awaits approval) |
+| P-Bench download, preflight, coverage ceiling | Done (pinned revision, approved 2026-11-27); B0 run: 0/425 (clarifies) |
+| P-Bench / NanoStat-Bench with an LLM planner (Magnitude) | Harness built and mock-tested; **NOT RUN** (Magnitude not installed) |
 | Python–R parity | Templates exist for 3 methods; **NOT RUN** on the development machine (no `Rscript`) |
 | Second-machine reproduction of the audit bundle | Tested in a fresh, isolated Python process on the same machine only |
 
