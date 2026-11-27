@@ -1,0 +1,46 @@
+{
+  "revision": "402205db5904b45b3f1f0aca895980f712fd61d3",
+  "tasks": 425,
+  "easy": 203,
+  "hard": 222,
+  "categories": {
+    "binomial_test": 3,
+    "chi_square_test": 5,
+    "cox_regression": 20,
+    "f_test": 15,
+    "fisher_exact_test": 35,
+    "iv_2sls": 24,
+    "kruskal_wallis_test": 6,
+    "log_rank_test": 35,
+    "logistic_regression": 35,
+    "mann_whitney_test": 35,
+    "mixed_effects": 7,
+    "ols_coefficient_test": 50,
+    "other": 9,
+    "probit": 13,
+    "spearman_correlation": 55,
+    "t_test": 76,
+    "tobit": 2
+  },
+  "category_ceiling": {
+    "all": 0.9788235294117648,
+    "easy": 1.0,
+    "hard": 0.9594594594594594,
+    "tasks": 416
+  },
+  "spec_flag_ceiling": {
+    "all": 0.8447058823529412,
+    "easy": 0.9458128078817734,
+    "hard": 0.7522522522522522,
+    "tasks": 359
+  },
+  "spec_flag_counts": {
+    "subset_restriction": 32,
+    "constructed_weights": 32,
+    "to_be_constructed": 1,
+    "stacked_or_reshaped": 2,
+    "lags_or_differences": 3,
+    "interaction": 1
+  },
+  "note": "spec flags are a keyword heuristic over question text; ceilings are upper bounds, not accuracy"
+}

@@ -97,7 +97,7 @@ def score(answers: Iterable[Answer], trials: Iterable[Trial]) -> dict[str, Any]:
         groups[f"difficulty:{a.difficulty}"].append(tid)
         groups[f"category:{a.category}"].append(tid)
         groups["perturbed" if a.perturbed else "clean"].append(tid)
-    report = {g: agg(ids) for g, ids in sorted(groups.items())}
+    report: dict[str, Any] = {g: agg(ids) for g, ids in sorted(groups.items())}
     hard = report.get("difficulty:hard", {})
     report["composite_hard_strict_pass1"] = hard.get("strict_pass1")
     report["per_task"] = per_task

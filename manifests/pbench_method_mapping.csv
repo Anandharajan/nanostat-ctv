@@ -1,0 +1,18 @@
+category,n,easy,hard,required_estimator,plugins,status,supported_tasks,supported_without_spec_flags
+t_test,76,35,41,Welch/Student/paired t,welch_t|student_t|paired_t,supported,76,57
+spearman_correlation,55,35,20,Spearman rank correlation,spearman,supported,55,54
+ols_coefficient_test,50,0,50,"OLS coefficient t/z test, classical/HC/cluster SE, covariates",ols_coef,supported,50,38
+fisher_exact_test,35,35,0,Fisher exact test,fisher_exact,supported,35,33
+log_rank_test,35,35,0,log-rank test,log_rank,supported,35,34
+logistic_regression,35,0,35,logistic regression Wald test,logistic,supported,35,28
+mann_whitney_test,35,35,0,Mann-Whitney U,mann_whitney,supported,35,35
+iv_2sls,24,0,24,2SLS coefficient test (classical/robust/cluster),iv_2sls,supported,24,16
+cox_regression,20,0,20,Cox PH coefficient test,cox_ph,supported,20,18
+f_test,15,0,15,joint/linear restriction F or Wald test after OLS,ols_wald,supported,15,14
+probit,13,13,0,probit coefficient test,probit,supported,13,11
+other,9,0,9,heterogeneous (stacked / custom estimators),,not_expressible,0,0
+mixed_effects,7,7,0,linear mixed model fixed-effect test,mixed_lm,supported,7,6
+kruskal_wallis_test,6,0,6,Kruskal-Wallis,kruskal_wallis,supported,6,5
+chi_square_test,5,5,0,Pearson chi-squared,chi2_independence,supported,5,5
+binomial_test,3,3,0,exact binomial,binomial_test,supported,3,3
+tobit,2,0,2,Tobit (censored) regression,tobit,supported,2,2

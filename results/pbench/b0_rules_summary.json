@@ -1,0 +1,199 @@
+{
+  "label": "B0:rules",
+  "tasks_scored": 425,
+  "trial_rows": 425,
+  "status_counts": {
+    "abstained": 425
+  },
+  "note": "full P-Bench (425 tasks)",
+  "category:binomial_test": {
+    "n": 3,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:chi_square_test": {
+    "n": 5,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:cox_regression": {
+    "n": 20,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:f_test": {
+    "n": 15,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:fisher_exact_test": {
+    "n": 35,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:iv_2sls": {
+    "n": 24,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:kruskal_wallis_test": {
+    "n": 6,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:log_rank_test": {
+    "n": 35,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:logistic_regression": {
+    "n": 35,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:mann_whitney_test": {
+    "n": 35,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:mixed_effects": {
+    "n": 7,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:ols_coefficient_test": {
+    "n": 50,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:other": {
+    "n": 9,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:probit": {
+    "n": 13,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:spearman_correlation": {
+    "n": 55,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:t_test": {
+    "n": 76,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "category:tobit": {
+    "n": 2,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "clean": {
+    "n": 425,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "difficulty:easy": {
+    "n": 203,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "difficulty:hard": {
+    "n": 222,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "overall": {
+    "n": 425,
+    "raw_pass1": 0.0,
+    "raw_pass3": 0.0,
+    "strict_pass1": 0.0,
+    "strict_pass3": 0.0,
+    "relaxed_pass1": 0.0,
+    "relaxed_pass3": 0.0
+  },
+  "composite_hard_strict_pass1": 0.0
+}
