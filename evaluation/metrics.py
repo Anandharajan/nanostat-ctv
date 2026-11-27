@@ -15,6 +15,7 @@ from benchmark.keys import load_keys
 from nanostat.controller import run_analysis
 from nanostat.planner import Planner, RulePlanner
 from nanostat.schemas import Action, KeyRecord, TaskRecord
+from nanostat.zscore import zc
 
 
 def clopper_pearson(k: int, n: int, conf: float = 0.95) -> tuple[float, float]:
@@ -41,6 +42,7 @@ class TaskOutcome:
     h0_true: bool
     family: str
     cell: str
+    strict: bool | None = None
 
 
 @dataclass
@@ -51,6 +53,20 @@ class Summary:
 
 def evaluate_task(t: TaskRecord, key: KeyRecord, df: pd.DataFrame, planner: Planner) -> TaskOutcome:
     rec = run_analysis(t.question, t.study, df, planner=planner, budget=t.budget, deterministic_audit=True)
+    return outcome_from_record(t, key, rec)
+
+
+def strict_correct(key: KeyRecord, r: Any) -> bool | None:
+    """Decision equals the reference AND |dz| < 0.5 versus the registry-preferred method's p."""
+    if key.abstain_target is not None:
+        return None
+    ref = next((a.p for a in key.admissible if a.method == key.preferred), None)
+    if ref is None or r.p_value is None or r.decision is None:
+        return False
+    return bool(r.decision == key.reference_decision and abs(zc(r.p_value) - zc(ref)) < 0.5)
+
+
+def outcome_from_record(t: TaskRecord, key: KeyRecord, rec: Any) -> TaskOutcome:
     r = rec.result
     answerable = key.abstain_target is None
     alt_ok = r.alternative is not None and any(
@@ -79,6 +95,7 @@ def evaluate_task(t: TaskRecord, key: KeyRecord, df: pd.DataFrame, planner: Plan
         h0_true=key.dgp.h0_true,
         family=key.dgp.family,
         cell=key.policy_cell,
+        strict=strict_correct(key, r),
     )
 
 
@@ -106,6 +123,7 @@ def summarize(outs: list[TaskOutcome]) -> Summary:
         "false_abstention_rate": rate(sum(o.action != "execute" for o in ans), len(ans)),
         "twin_consistency_accuracy": rate(sum(ok(a) and ok(b) for a, b in pairs), len(pairs)),
         "operational_failure_rate": rate(sum(o.operational_failure is not None for o in outs), len(outs)),
+        "strict_single_reference": rate(sum(bool(o.strict) for o in ans), len(ans)),
         "task_level_reject_rate_true_null": rate(
             sum(o.decision == "reject" for o in ans if o.h0_true), sum(1 for o in ans if o.h0_true)
         ),

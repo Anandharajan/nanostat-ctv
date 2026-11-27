@@ -84,6 +84,8 @@ POLICY_SIDE = [
     ROOT / "training" / "ablation" / "features.py",
     ROOT / "training" / "ablation" / "policy.py",
     PKG / "protocol.py",
+    PKG / "llm.py",
+    PKG / "policy_review.py",
 ]
 
 
