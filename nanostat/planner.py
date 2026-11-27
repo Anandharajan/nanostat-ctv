@@ -55,6 +55,15 @@ _ESTIMAND_FOR = {
     "fisher_exact": Estimand.association,
     "binomial_test": Estimand.proportion,
     "permutation_test": Estimand.mean_difference,
+    "ols_coef": Estimand.coefficient,
+    "ols_wald": Estimand.linear_restriction,
+    "logistic": Estimand.coefficient,
+    "probit": Estimand.coefficient,
+    "iv_2sls": Estimand.coefficient,
+    "mixed_lm": Estimand.coefficient,
+    "tobit": Estimand.coefficient,
+    "cox_ph": Estimand.hazard_ratio,
+    "log_rank": Estimand.survival_curves_equal,
 }
 
 

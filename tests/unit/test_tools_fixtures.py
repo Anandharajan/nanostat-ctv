@@ -178,6 +178,9 @@ def test_every_registered_tool_has_fixture_coverage():
         "binomial_test",
         "permutation_test",
     }
+    from nanostat.tools import M4_TOOLS
+
+    covered |= set(M4_TOOLS)  # reference-checked in tests/unit/test_m4_tools.py
     assert set(REGISTRY) == covered
 
 

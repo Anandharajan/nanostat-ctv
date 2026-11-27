@@ -55,7 +55,10 @@ REQUIRED_ROLES: dict[Design, list[set[str]]] = {
     Design.correlation: [{"x", "y"}],
     Design.k_group: [{"y", "group"}],
     Design.one_sample: [{"y"}],
+    Design.regression: [set()],  # variables come from plan.model
+    Design.survival: [set()],
 }
+MODEL_DESIGNS = (Design.regression, Design.survival)
 
 
 @dataclass
@@ -133,6 +136,13 @@ def _gate1(plan: Plan, study: Study, prof: dict[str, Any], rep: VerifyReport) ->
     for role, col in plan.columns.items():
         if col not in names:
             err(f"unknown_column:{role}={col}")
+    if plan.design in MODEL_DESIGNS:
+        if plan.model is None:
+            err(f"missing_model:{plan.design.value} plans need a model specification")
+        else:
+            for col in plan.model.columns_used():
+                if col not in names:
+                    err(f"unknown_column:model={col}")
     for op in plan.preprocess:
         pcol = getattr(op, "column", None)
         if pcol is not None and pcol not in names:
@@ -183,6 +193,8 @@ def _gate1(plan: Plan, study: Study, prof: dict[str, Any], rep: VerifyReport) ->
 
     # preprocessing validated against the protocol before it runs
     outcome_cols = {plan.columns[r] for r in OUTCOME_ROLES if r in plan.columns}
+    if plan.model is not None:
+        outcome_cols |= {c for c in (plan.model.outcome, plan.model.time, plan.model.event) if c}
     for op in plan.preprocess:
         if isinstance(op, Filter) and op.column in outcome_cols:
             err(f"forbidden:filter on outcome column {op.column!r}")
@@ -217,6 +229,11 @@ def _gate2(plan: Plan, raw: pd.DataFrame, study: Study, rep: VerifyReport) -> No
         err("missing_pair_id")
 
     otype = outcome_type_of(df, plan.columns)
+    if plan.design == Design.survival:
+        otype = OutcomeType.time_to_event
+    elif plan.design == Design.regression and plan.model is not None and plan.model.outcome in df.columns:
+        nun = df[plan.model.outcome].dropna().nunique()
+        otype = OutcomeType.binary if nun == 2 else OutcomeType.continuous
     if study.outcome is not None and otype is not None and study.outcome != otype:
         rep.messages.append(f"study declares {study.outcome.value} outcome, data look {otype.value}")
     if otype is not None and otype not in tool.outcomes:
@@ -245,6 +262,7 @@ def _gate2(plan: Plan, raw: pd.DataFrame, study: Study, rep: VerifyReport) -> No
         p0=proto.p0,
         alpha=proto.alpha,
         design=plan.design,
+        model=plan.model,
     )
     rep.diagnostics = compute_diagnostics(df, rep.ctx, plan.design)
     if "error" in rep.diagnostics:

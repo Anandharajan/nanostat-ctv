@@ -37,11 +37,14 @@ class Design(str, Enum):
     correlation = "correlation"
     k_group = "k_group"
     one_sample = "one_sample"
+    regression = "regression"  # coefficient / linear-restriction tests from a fitted model
+    survival = "survival"  # time-to-event: log-rank, Cox
 
 
 class OutcomeType(str, Enum):
     continuous = "continuous"
     binary = "binary"
+    time_to_event = "time_to_event"
 
 
 class Alternative(str, Enum):
@@ -62,6 +65,10 @@ class Estimand(str, Enum):
     association = "association"
     odds_ratio = "odds_ratio"
     proportion = "proportion"
+    coefficient = "coefficient"
+    linear_restriction = "linear_restriction"
+    hazard_ratio = "hazard_ratio"
+    survival_curves_equal = "survival_curves_equal"
 
 
 class Check(str, Enum):
@@ -126,6 +133,45 @@ class TrimOp(_Strict):
 PreprocessOp = Annotated[Union[DropMissing, Filter, LogOp, Recode, SelectLevels, TrimOp], Field(discriminator="op")]
 
 
+# ---- model specification for regression / survival designs (SPEC §6.1 M4) ------------------
+
+
+class ModelSpec(_Strict):
+    """Typed model specification. Every field names columns; no formulas or code."""
+
+    outcome: str | None = None  # y (None for survival: use time/event)
+    exposure: list[str] = Field(default_factory=list)  # coefficient(s) under test
+    covariates: list[str] = Field(default_factory=list)  # numeric controls
+    categorical: list[str] = Field(default_factory=list)  # factors -> dummies (fixed effects), first level dropped
+    se: Literal["classical", "HC0", "HC1", "HC2", "HC3", "cluster"] = "classical"
+    cluster: str | None = None
+    weights: str | None = None
+    intercept: bool = True
+    instruments: list[str] = Field(default_factory=list)  # IV: excluded instruments
+    time: str | None = None  # survival time
+    event: str | None = None  # 1 = event, 0 = censored
+    group: str | None = None  # log-rank grouping or mixed-model random intercept
+    restriction: Literal["each", "joint_zero", "equal"] = "each"  # F / Wald tests
+    ties: Literal["efron", "breslow"] = "efron"  # Cox
+    censor_left: float | None = None  # Tobit lower limit (default 0)
+    dist: Literal["t", "z"] | None = None  # reference distribution; None = method default
+
+    def columns_used(self) -> list[str]:
+        cols = [
+            self.outcome,
+            *self.exposure,
+            *self.covariates,
+            *self.categorical,
+            self.cluster,
+            self.weights,
+            *self.instruments,
+            self.time,
+            self.event,
+            self.group,
+        ]
+        return [c for c in dict.fromkeys(cols) if c]
+
+
 # ---- typed plan (SPEC §5.1) -----------------------------------------------------------
 
 ROLE_NAMES = {"y", "group", "y1", "y2", "pair_id", "x", "cluster"}
@@ -144,6 +190,7 @@ class Plan(_Strict):
     params: dict[str, float] = Field(default_factory=dict)
     preprocess: list[PreprocessOp] = Field(default_factory=list)
     checks: list[CheckClaim] = Field(default_factory=list)
+    model: ModelSpec | None = None
     reason_code: ReasonCode | None = None
     rationale: str | None = Field(default=None, max_length=600)
 
@@ -187,6 +234,7 @@ class Study(_Strict):
     alternative: Alternative | None = None
     estimand_family: EstimandFamily | None = None
     allow_population_filters: bool = False
+    model: ModelSpec | None = None  # optional user-declared model specification
 
     @field_validator("roles")
     @classmethod

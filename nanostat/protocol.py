@@ -27,7 +27,18 @@ def infer_estimand_family(question: str) -> EstimandFamily | None:
     return None
 
 
+_H1 = re.compile(r"^\s*H1\s*[:.]\s*(.+)$", re.I | re.M)
+
+
+def claim_text(question: str) -> str:
+    """If the question states an alternative hypothesis ('H1: ...'), direction and estimand are read
+    from that line only; otherwise from the whole question."""
+    m = _H1.search(question)
+    return m.group(1) if m else question
+
+
 def build_protocol(question: str, study: Study) -> Protocol:
+    question = claim_text(question)
     explicit = study.alternative is not None or study.estimand_family is not None
     return Protocol(
         alpha=study.alpha,
@@ -80,6 +91,11 @@ _HYP: dict[tuple[Design, Estimand], str] = {
     (Design.k_group, Estimand.group_means_equal): "means_equal",
     (Design.k_group, Estimand.group_distributions_equal): "distributions_equal",
     (Design.one_sample, Estimand.proportion): "p_equals_p0",
+    (Design.regression, Estimand.coefficient): "coef_zero",
+    (Design.regression, Estimand.linear_restriction): "restriction_true",
+    (Design.survival, Estimand.hazard_ratio): "hr_one",
+    (Design.survival, Estimand.linear_restriction): "restriction_true",
+    (Design.survival, Estimand.survival_curves_equal): "survival_equal",
 }
 
 

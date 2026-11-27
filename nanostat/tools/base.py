@@ -25,6 +25,7 @@ class RunContext:
     p0: float | None = None
     alpha: float = 0.05
     design: Design | None = None
+    model: Any = None  # nanostat.schemas.ModelSpec for regression / survival designs
 
 
 @dataclass

@@ -185,3 +185,36 @@
   clarify_if: [p0_missing]
   reviewed_by: PENDING
   version: 0.2.0
+
+# ---- M4 model-based designs (v0.3.0). Admissibility here is by outcome type only; whether the
+# ---- SPECIFICATION (covariates, SE type, clustering, instruments) is right is not judged by the
+# ---- registry and must be reviewed by a statistician.
+
+- cell: {design: regression, outcome: continuous, perturbation: none}
+  estimand_options:
+    coefficient: [ols_coef, iv_2sls, mixed_lm, tobit]
+    linear_restriction: [ols_wald, ols_coef]
+  invalid:
+    - {method: logistic, reason: outcome_type_mismatch}
+    - {method: probit, reason: outcome_type_mismatch}
+  reviewed_by: PENDING
+  version: 0.3.0
+
+- cell: {design: regression, outcome: binary, perturbation: none}
+  estimand_options:
+    coefficient: [logistic, probit, ols_coef, iv_2sls]
+    linear_restriction: [ols_wald, logistic, probit]
+  invalid:
+    - {method: tobit, reason: outcome_type_mismatch}
+    - {method: mixed_lm, reason: linear_mixed_model_on_binary_outcome}
+  reviewed_by: PENDING
+  version: 0.3.0
+
+- cell: {design: survival, outcome: time_to_event, perturbation: none}
+  estimand_options:
+    hazard_ratio: [cox_ph]
+    survival_curves_equal: [log_rank]
+    linear_restriction: [cox_ph]
+  invalid: []
+  reviewed_by: PENDING
+  version: 0.3.0
