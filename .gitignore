@@ -22,6 +22,7 @@ results/*
 !results/spec_label_nullcal.json
 !results/pbench/
 !results/edu/
+!results/llm_b1/
 results/pbench/*.jsonl
 *.zip
 .claude/

@@ -46,7 +46,7 @@ Status words: **PASS** · **FAIL** · **BLOCKED** (needs a person or resource) �
 | Compute-matched ablation | PASS | `results/ablation_cpu/ablation_results.json` (per-seed rollout logs) |
 | Statistician review of the admissible registry | **BLOCKED** | All 20 cells `reviewed_by: PENDING`; LLM pre-review tool exists, but no sign-off |
 | Independent (non-circular) test set | **NOT RUN** | Needs sets authored separately from the training registry |
-| LLM B1 baseline (NanoStat-Bench, null calibration, P-Bench pilot) | **NOT RUN** | Magnitude not installed |
+| LLM B1 baseline (NanoStat-Bench, null calibration, P-Bench pilot) | **PARTIAL** | Dev split measured (Qwen2.5-Coder-1.5B, prompt v2): 0/92 runnable plans; docs/LLM_B1_BASELINE.md. Null calibration and P-Bench pilot NOT RUN |
 | LLM SFT + GRPO arms, ≥ 3 seeds, matched tokens | **NOT RUN** | Needs a T4 (Colab or Kaggle); token-budget enforcement pending |
 | Full P-Bench 425 × 3 with a frozen model | **NOT RUN** | Depends on the two rows above |
 | Scorer confirmation by P-Bench authors | **NOT RUN** | Fixture sheet ready (`benchmark/pbench/score.py::FIXTURE_SHEET`); email not sent |

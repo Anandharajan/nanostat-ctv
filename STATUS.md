@@ -1,5 +1,11 @@
 # STATUS
 
+## 2026-11-28: first LLM baseline (B1) measured on Colab
+- `notebooks/03_llm_b1_colab.ipynb` run on a free Colab T4 through Chrome: Qwen2.5-Coder-1.5B-Instruct served by vLLM 0.34.0, prompt `typed-plan-v2`, dev split 92 tasks.
+- **Result: 0/92 runnable plans** in both single shot (92 calls) and 3-step (276 calls) mode. Method validity 0/88, operational failure 92/92. Causes: column names used as roles (50), estimand family written as estimand (34), clarify without reason_code (32), invented check names (13); clarify chosen on 91/92. Re-planning cannot help, because schema-failure feedback is only "output was not a valid typed plan JSON".
+- Traces, summaries, versions and the vLLM log are in `results/llm_b1/` (zip sha256 45ea2494…cabd6e, verified after download). Write-up: docs/LLM_B1_BASELINE.md.
+- Next: prompt v3 and informative schema feedback (dev only, disclosed), then SFT.
+
 ## 2026-11-28: cheating-agent demo panel; LLM baseline attempt
 - **Demo panel 4, "Watch an agent learn to cheat"** (`site/`). Two-step tabular agents (design, then method; textbook habit 4) are trained with the CTV reward at equal compute; only the broken-plan score differs. Measured in the page, seeds 1–5, 150 steps: broken plan at 0.0 or −0.1 gives 6–30% broken plans, validity 70–94% and an invalid rate that reads 0%. At −0.3 or −0.5: 0% broken, validity 93–100%. A one-step agent (one table entry per situation) does **not** show the hack; it needs the two-step structure (measured in Node first).
 - **LLM B1: still NOT RUN.** Magnitude CLI 0.3.7 is installed (maintainer-approved). It cannot run qwen2/qwen3. Qwen3.5-2B Q4_K_M was downloaded (approved substitute) but Magnitude refused to load it (needs 601 MB more, even at 32K context). Details: docs/LOCAL_LLM_VALIDATION.md.

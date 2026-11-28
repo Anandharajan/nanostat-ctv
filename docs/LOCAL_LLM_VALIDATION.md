@@ -44,7 +44,7 @@ Every run writes a resumable JSONL trace (`results/…`) with the raw model outp
 - Report every run, including failures; numbers are "measured on <model id>, Magnitude <version>, prompt <hash>".
 
 ## Status (2026-11-28)
-**No LLM result exists yet (NOT RUN).** The client, harness, P-Bench runner and pre-review are tested against a mock local OpenAI-compatible server (`tests/unit/test_llm_pbench_m4.py`).
+**First LLM result: B1 on the dev split, measured on Colab** (not Magnitude): 0/92 runnable plans with prompt v2. See docs/LLM_B1_BASELINE.md. Everything else with an LLM is still NOT RUN. The client, harness, P-Bench runner and pre-review are tested against a mock local OpenAI-compatible server (`tests/unit/test_llm_pbench_m4.py`).
 
 What happened on the development machine (i7-8750H, 32 GB RAM, Quadro P1000 4 GB):
 - Magnitude CLI **0.3.7** installed with the maintainer's approval (official script, checksum and publisher signature verified; CLI only).
