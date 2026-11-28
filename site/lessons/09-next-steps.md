@@ -34,9 +34,10 @@ Be honest about the toy:
 ## Where to go next
 
 1. **Read the real reward.** `training/reward_server.py`, then `training/constraint.py`. Find the lines that play the role of
-   `MALFORMED`: unparseable or unverifiable plans score `0.0`, *above* the invalid penalty `-0.2`. That is lesson 4's hack 1.
-   It is listed as an open issue in `docs/limitations.md`. Whether the CPU proxy learner exploited it has not been measured.
-   An LLM trained with GRPO could. Measuring it and fixing it before the first GPU run is a good first contribution.
+   `MALFORMED` (`malformed_penalty`). Until v0.4.1, unparseable or unverifiable plans scored `0.0` there, *above* the invalid
+   penalty `-0.2`: lesson 4's hack 1, in the real system. Measured: the CPU proxy kept 4–7% broken plans on average (22–29% on one
+   seed), which made its invalid-method rate look better than it was. It now scores −0.5, and the re-run is in `docs/ABLATION_RESULTS.md`
+   (correction notice 2). Exercise: abstaining on an answerable task scores −0.1, above an invalid method. Is that another dodge?
 2. **Read a real verifier.** `nanostat/verifier.py`: why two gates, and what does the "locked protocol" stop the model from changing?
 3. **Run the full CPU ablation.** `nanostat ablate`: the same experiment as lesson 8 with 18 actions, 5 seeds and paired confidence intervals.
 4. **Run an actual LLM, locally.** `nanostat eval --arms B1 --llm-model <id>` against a local OpenAI-compatible server (e.g. Magnitude). See `docs/LOCAL_LLM_VALIDATION.md`.

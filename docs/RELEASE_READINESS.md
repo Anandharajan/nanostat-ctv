@@ -15,7 +15,7 @@ Status words: **PASS** · **FAIL** · **BLOCKED** (needs a person or resource) �
 ## 2. What the current results can and cannot support
 
 **Can claim (measured, compute-matched, Holm-corrected; `docs/ABLATION_RESULTS.md`):**
-- An admissible-set reward beats a Fisher-R1-style p-value-matching reward on method validity (+0.058 [+0.043, +0.073]) and twin consistency (+0.084 [+0.048, +0.125]) at equal generated rollouts (19,200 per arm, 5 seeds). The invalid-method rate falls from ~12% to ~1–2%.
+- An admissible-set reward beats a Fisher-R1-style p-value-matching reward on method validity (+0.064 [+0.050, +0.079]) and twin consistency (+0.091 [+0.050, +0.141]) at equal generated rollouts (19,200 per arm, 5 seeds; v0.4.1 reward). The invalid-method rate falls from ~12% to ~2–3%, with no broken plans (the v0.4.0 reward let broken plans hide invalid choices; see correction notice 2).
 - Hypothesis-specific null calibration: the agent's false-positive rate stays at or below 5% within its CI, and the registry's invalid labels are confirmed by fixed-method arms (e.g. Student t 14.1% and the permutation test 14.5% under unequal variances; Pearson 48.8% under leverage).
 - Spec-level labels for regression/survival are statistically right: e.g. omitted confounder 60% vs 4%, naive OLS under endogeneity 98.8% vs 4.4% (`docs/REGRESSION_FAMILIES.md`).
 - Engineering: P-Bench tool coverage ceiling 97.9% (Hard 95.9%), clean-room scorer, a verifier with a locked protocol and two gates, and reproducible audit bundles.

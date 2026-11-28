@@ -1,5 +1,12 @@
 # STATUS
 
+## 2026-11-28: v0.4.1, reward ordering fix (broken plans)
+- **Found:** `score_plan` scored broken plans (parse, verifier or execution failure) 0.0 > invalid −0.2, which is reward hacking. Fixed: `RewardWeights.malformed_penalty = -0.5`; SPEC §21.6. The R-F comparator is unchanged.
+- Ablation now reports a **broken-plan rate** (`TaskTable.broken`, `evaluate`).
+- Re-ran the published configuration on regenerated pilot data (generator at 66beb24, seed 20261126; 1,400 tasks, 794/101/505, 200 pairs). Old reward: **reproduces every published number exactly**. It shows CTV-family broken-plan rates of 4.0–6.7% on average (seed 2: 22–29%) and R-F 0.000. Kept in `results/ablation_cpu/v0.4.0_reward/`.
+- New reward (`results/ablation_cpu/`): broken 0.000–0.002 in CTV arms; R-CTV − R-F validity +0.064 [+0.050, +0.079] (was +0.058), twin +0.091 [+0.050, +0.141], FPR no difference; CTV-family invalid rate 1.7–2.9% (was 1.1–1.8%); R-A validity 0.922 → 0.905 (not uniformly positive; documented as finding 7).
+- `pytest` 312 passed; ruff and mypy clean. Tests: `test_invalid_output_scores_zero` replaced by `test_broken_output_scores_below_invalid_method`, because the spec changed (not a loosened tolerance); added `test_fisher_comparator_unchanged_for_broken_output`.
+
 ## 2026-11-28: nanostat teaching track + GitHub Pages demo
 - `edu/nanostat.py` (578 lines, self-contained): 7 tests from scratch (checked against scipy), a task world with answer keys, typed 3-token plans plus a verifier, Fisher-style and CTV rewards, TinyGPT (104,064 params), grammar-constrained decoding, SFT (label smoothing), GRPO (k3 KL, rollout budget), evaluation, 3-seed experiment, CLI with one sub-command per lesson.
 - `site/`: in-browser demo (null simulator, reward playground, tabular GRPO at equal compute, all JS, no dependencies), 9 Jekyll lessons, Pages workflow `.github/workflows/pages.yml`; Colab notebook `edu/nanostat_colab.ipynb`.

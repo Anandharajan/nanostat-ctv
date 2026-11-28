@@ -47,6 +47,7 @@ class TaskTable:
     strict: np.ndarray  # (N, A) decision == reference and |dz| < 0.5 vs the preferred reference
     gold: np.ndarray  # (N,) action index of the registry-preferred gold plan
     meta: list[dict[str, Any]] = field(default_factory=list)
+    broken: np.ndarray | None = None  # (N, A) 1 if the plan could not be verified or executed (reward-hacking audit)
 
     def save(self, path: Path) -> None:
         np.savez_compressed(
@@ -61,6 +62,7 @@ class TaskTable:
             invalid=self.invalid,
             strict=self.strict,
             gold=self.gold,
+            broken=self.broken if self.broken is not None else np.full_like(self.ctv, np.nan),
         )
         path.with_suffix(".meta.json").write_text(json.dumps({"task_ids": self.task_ids, "meta": self.meta}))
 
@@ -81,6 +83,7 @@ class TaskTable:
             z["strict"],
             z["gold"],
             m["meta"],
+            z["broken"] if "broken" in z.files else None,
         )
 
 
@@ -122,6 +125,7 @@ def _row(key: KeyRecord, t: TaskRecord, df: pd.DataFrame, prof: dict[str, Any], 
         "correct": float(correct),
         "invalid": float(s.in_B),
         "strict": float(strict),
+        "broken": float(not s.valid),
     }
 
 
@@ -129,7 +133,7 @@ def build_task_table(data_dir: Path, splits: tuple[str, ...] = ("train", "dev", 
     keys = load_keys(data_dir / "keys" / "keys.jsonl")
     ids, phis, golds, meta = [], [], [], []
     cols: dict[str, list[list[float]]] = {
-        k: [] for k in ("ctv", "fisher", "reject", "reject_any", "htrue", "correct", "invalid", "strict")
+        k: [] for k in ("ctv", "fisher", "reject", "reject_any", "htrue", "correct", "invalid", "strict", "broken")
     }
     for sp in splits:
         for line in (data_dir / "tasks" / f"{sp}.jsonl").read_text(encoding="utf-8").splitlines():
@@ -172,6 +176,7 @@ def build_task_table(data_dir: Path, splits: tuple[str, ...] = ("train", "dev", 
         arr["strict"],
         np.asarray(golds),
         meta,
+        arr["broken"],
     )
 
 

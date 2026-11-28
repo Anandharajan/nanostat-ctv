@@ -606,3 +606,6 @@ Arms B0, B1, B2 (iterative diagnostics), B3 (method-doc retrieval), S0, R0, R-F,
 
 ### 21.5 CPU ablation (implemented)
 `nanostat ablate` trains a linear-softmax proxy policy over an 18-action typed-plan catalogue with the six arms S0, R-F, R-A, R-AD, R-ADT, R-CTV at matched budget, using the real reward server, sampler, twin-joint advantage and scenario constraint. It isolates the effect of the training signal; it is not the language model. Results: `docs/ABLATION_RESULTS.md`.
+
+### 21.6 Reward ordering (v0.4.1, 28 November 2026)
+The CTV reward must order outcomes: admissible > not in A (0) > abstaining on an answerable task (−0.1) > invalid method / protocol violation / fabricated number (−0.2) > **broken plan** (cannot be parsed, verified or executed; −0.5, `RewardWeights.malformed_penalty`). Before v0.4.1, broken plans scored 0, so a policy could avoid the invalid penalty by emitting broken plans (measured: the CTV-family CPU arms kept 4–7% broken plans on average). Every evaluation reports the **broken-plan rate** next to the invalid-method rate. The R-F comparator keeps its original definition (broken = 0, its minimum).

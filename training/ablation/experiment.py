@@ -234,6 +234,10 @@ def evaluate(pol: LinearSoftmaxPolicy, tb: TaskTable, idx: np.ndarray) -> dict[s
         "ctv_reward": float(tb.ctv[idx, a][rows].mean()),
         "fisher_reward": float(tb.fisher[idx, a][rows].mean()),
     }
+    # Share of answerable tasks where the chosen plan could not be verified or executed. A policy can lower the
+    # invalid-method rate by hiding in broken plans; report both (see docs/limitations.md, reward ordering).
+    if tb.broken is not None and ans.any():
+        out["broken_plan_rate"] = float(tb.broken[idx, a][rows][ans].mean())
     pos = {tb.task_ids[i]: k for k, i in enumerate(idx)}
     pairs = []
     for k, i in enumerate(idx):
@@ -378,6 +382,7 @@ def _summarise(runs: list[dict[str, Any]]) -> dict[str, Any]:
 METRICS = [
     ("method_validity", "Method validity"),
     ("invalid_method_rate", "Invalid-method rate"),
+    ("broken_plan_rate", "Broken-plan rate"),
     ("twin_consistency", "Twin consistency"),
     ("abstention_correct", "Abstention correct"),
     ("held_out_edit_accuracy", "Held-out edits"),

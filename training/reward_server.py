@@ -32,6 +32,9 @@ class RewardWeights:
     w_assume: float = 0.10
     invalid_penalty: float = -0.2
     abstain_on_answerable: float = -0.1
+    # A plan that cannot be parsed, verified or executed must score BELOW an invalid method. Otherwise the
+    # policy can dodge invalid_penalty by emitting broken plans (reward hacking; docs/limitations.md, v0.4.1).
+    malformed_penalty: float = -0.5
 
 
 @dataclass
@@ -77,7 +80,7 @@ def score_plan(
     w = weights or RewardWeights()
     plan, err = parse_plan(raw_text)
     if plan is None:
-        return Scored(0.0, False, failure=err)
+        return Scored(w.malformed_penalty, False, failure=err)
 
     # --- abstention branch ------------------------------------------------------------------
     if key.abstain_target is not None:
@@ -111,14 +114,16 @@ def score_plan(
             failure="forbidden_or_protocol" if forbidden else "invalid_method",
         )
     if not rep.ok:
-        return Scored(0.0, False, method=method, action="execute", failure="verifier:" + ";".join(rep.errors[:3]))
+        return Scored(
+            w.malformed_penalty, False, method=method, action="execute", failure="verifier:" + ";".join(rep.errors[:3])
+        )
     try:
         res = execute_plan(df, plan, rep)
     except (ToolError, PreprocessError, ValueError, FloatingPointError) as e:
-        return Scored(0.0, False, method=method, action="execute", failure=f"execution:{e}")
+        return Scored(w.malformed_penalty, False, method=method, action="execute", failure=f"execution:{e}")
     p = res.p_value
     if p is None or math.isnan(p):
-        return Scored(0.0, False, method=method, action="execute", failure="nan_p")
+        return Scored(w.malformed_penalty, False, method=method, action="execute", failure="nan_p")
 
     in_A = method in {a.method for a in key.admissible} and spec_ok
     refs = [a.p for a in key.admissible if a.p is not None]  # max over A(x, e) only

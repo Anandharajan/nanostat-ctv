@@ -135,12 +135,21 @@ def test_fabricated_number_penalised(outlier_task):
     assert not has_fabricated_number(_plan_text("mann_whitney"))
 
 
-def test_invalid_output_scores_zero(outlier_task):
+def test_broken_output_scores_below_invalid_method(outlier_task):
+    """v0.4.1: broken plans used to score 0.0 > invalid -0.2, which rewards dodging the penalty (reward hacking).
+    Ordering now: admissible > not in A > invalid (-0.2) > broken (-0.5)."""
     key, df, study, q = outlier_task
-    assert score_plan(key, "not json", df, study, q).reward == 0.0
-    assert (
-        score_plan(key, _plan_text("mann_whitney", columns={"y": "nope", "group": "arm"}), df, study, q).reward == 0.0
-    )
+    invalid = score_plan(key, _plan_text("student_t"), df, study, q)
+    unparsed = score_plan(key, "not json", df, study, q)
+    unverifiable = score_plan(key, _plan_text("mann_whitney", columns={"y": "nope", "group": "arm"}), df, study, q)
+    assert invalid.reward == -0.2 and invalid.valid
+    for s in (unparsed, unverifiable):
+        assert s.reward == -0.5 < invalid.reward and not s.valid
+
+
+def test_fisher_comparator_unchanged_for_broken_output(outlier_task):
+    key, df, study, q = outlier_task
+    assert score_fisher(key, "not json", df, study, q).reward == 0.0  # R-F keeps the Fisher-R1-style definition
 
 
 def test_wrong_tail_is_a_protocol_violation(outlier_task):
