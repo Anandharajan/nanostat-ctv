@@ -78,6 +78,7 @@ def test_llm_eval_harness_is_resumable(server, smoke_data: Path, tmp_path: Path)
     r2 = run_llm_eval(smoke_data, "train", gen, "B1:mock", traces, trials=1, max_steps=1, limit=5)
     assert n1 == len(traces.read_text().splitlines()) == 5 and r1["n_rows"] == r2["n_rows"] == 5
     assert r1["first_attempt_json_valid_rate"] == 1.0
+    assert r1["total_completion_tokens"] == 5 * 5 and r1["total_llm_calls"] == 5  # mock reports 5 tokens per call
     row = json.loads(traces.read_text().splitlines()[0])
     assert row["prompt_hash"] and row["raw_outputs"]
 

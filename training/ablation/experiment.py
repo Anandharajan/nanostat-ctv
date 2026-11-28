@@ -62,6 +62,10 @@ class HParams:
     tau_twin: float = 0.8
     log_every: int = 25
     max_resample: int = 2
+    # Compute is matched on ROLLOUTS GENERATED (every sampled action, re-samples included), the quantity
+    # that dominates LLM cost. None -> updates * instances_per_update * group_size. Arms therefore finish
+    # with different numbers of optimiser updates; that number is logged, not matched.
+    rollout_budget: int | None = None
 
 
 @dataclass
@@ -72,6 +76,9 @@ class RunLog:
     skipped_zero_var: int = 0
     instances: int = 0
     lambdas: dict[str, Any] = field(default_factory=dict)
+    rollouts_generated: int = 0
+    rollouts_with_gradient: int = 0
+    updates_done: int = 0
 
 
 def _split_idx(tb: TaskTable, split: str) -> np.ndarray:
@@ -136,16 +143,22 @@ def train_arm(arm: Arm, tb: TaskTable, hp: HParams, seed: int) -> tuple[LinearSo
     w = w / w.sum()
     cons = ScenarioConstraint(pwr_ref=power_reference(tb, train)) if arm.constraint else None
 
-    for upd in range(1, hp.updates + 1):
+    budget = hp.rollout_budget or hp.updates * hp.instances_per_update * hp.group_size
+    upd = 0
+    while log.rollouts_generated < budget:
+        upd += 1
         phis, acts, advs = [], [], []
         null_rej: dict[str, list[float]] = {}
         alt_rej: dict[str, list[float]] = {}
         n_inst = 0
-        while n_inst < hp.instances_per_update:
+        while n_inst < hp.instances_per_update and log.rollouts_generated < budget:
             u = units[rng.choice(len(units), p=w)]
             n_inst += len(u)
             for _attempt in range(hp.max_resample + 1):
+                if _attempt > 0 and log.rollouts_generated >= budget:
+                    break
                 samples = [pol.sample(tb.phi[i], hp.group_size) for i in u]
+                log.rollouts_generated += len(u) * hp.group_size
                 rewards = []
                 for i, a in zip(u, samples):
                     r = table[i, a].copy()
@@ -167,6 +180,7 @@ def train_arm(arm: Arm, tb: TaskTable, hp: HParams, seed: int) -> tuple[LinearSo
             else:
                 log.skipped_zero_var += 1
                 continue
+            log.rollouts_with_gradient += len(u) * hp.group_size
             for i, a, ad in zip(u, samples, advs_u):
                 phis.append(np.repeat(tb.phi[i][None, :], len(a), axis=0))
                 acts.append(a)
@@ -186,11 +200,16 @@ def train_arm(arm: Arm, tb: TaskTable, hp: HParams, seed: int) -> tuple[LinearSo
             pol.grpo_step(np.concatenate(phis), np.concatenate(acts), np.concatenate(advs), hp.lr, ref_W, hp.kl_beta)
         if cons is not None:
             cons.update(null_rej, alt_rej)
-        if upd % hp.log_every == 0 or upd == hp.updates:
-            row = {"update": upd, **{f"dev_{k}": v for k, v in evaluate(pol, tb, dev).items()}}
+        if upd % hp.log_every == 0 or log.rollouts_generated >= budget:
+            row = {
+                "update": upd,
+                "rollouts": log.rollouts_generated,
+                **{f"dev_{k}": v for k, v in evaluate(pol, tb, dev).items()},
+            }
             if cons is not None:
                 row["max_lambda1"] = max((st.lam1 for st in cons.states.values()), default=0.0)
             log.curve.append(row)
+    log.updates_done = upd
     if cons is not None:
         log.lambdas = cons.state_dict()
     return pol, log
@@ -389,6 +408,25 @@ def markdown_report(res: dict[str, Any], header: str) -> str:
                 + f" | {nfs if split == 'test' else '-'} |"
             )
         lines.append("")
+    lines += [
+        "### Compute parity (per arm, mean over seeds)",
+        "",
+        "| Arm | Rollouts generated | Rollouts contributing a gradient | Optimiser updates | Task instances |",
+        "|---|---|---|---|---|",
+    ]
+    by_arm: dict[str, list[dict[str, Any]]] = {}
+    for k, lg in res["logs"].items():
+        by_arm.setdefault(k.split("/")[0], []).append(lg)
+    for arm, lgs in by_arm.items():
+
+        def m(f: str, lgs: list[dict[str, Any]] = lgs) -> float:
+            return float(np.mean([lg.get(f, 0) for lg in lgs]))
+
+        lines.append(
+            f"| {arm} | {m('rollouts_generated'):,.0f} | {m('rollouts_with_gradient'):,.0f} | "
+            f"{m('updates_done'):,.0f} | {m('instances'):,.0f} |"
+        )
+    lines.append("")
     if "primary_R-CTV_vs_R-F" in res:
         lines += [
             "### Primary comparisons: R-CTV minus R-F (locked test split, paired bootstrap 2,000, Holm)",

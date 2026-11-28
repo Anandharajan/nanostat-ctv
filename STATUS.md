@@ -1,5 +1,12 @@
 # STATUS
 
+## 2026-11-28: publication readiness and compute parity
+- **Found and fixed:** the CPU ablation was not compute-matched (re-sampled rollouts uncounted; twin batches overshot). It now matches arms on generated rollouts (19,200 per arm). Re-run on identical tables: R-CTV - R-F validity +0.058 [+0.043, +0.073] (was +0.086), twin consistency +0.084 [+0.048, +0.125], FPR no difference; D/T/V not separable from A. docs/ABLATION_RESULTS.md has a correction notice.
+- Proxy action catalogue excludes model-based designs (no spec head), so the 18-action space is unchanged.
+- Token accounting (prompt/completion tokens, LLM calls) added to B1 and P-Bench traces and summaries.
+- docs/RELEASE_READINESS.md: leaderboards NOT publishable yet (no LLM run); workshop/tech report publishable with honest scope; resource-parity table and gate checklist.
+- `pytest` 303 passed; ruff/mypy clean. Not pushed.
+
 ## v0.4.0 (2026-11-27): regression / survival task families
 - 7 model-based families (linear, binary, IV, multi-arm, survival-group, Cox, panel) with **spec-level answer keys** (`benchmark/spec.py`) and 3 spec twins (add clustering, add confounder, make endogenous). CTV reward, metrics and SFT gold plans judge the full `ModelSpec`.
 - Fixes found along the way: snake_case variable names (e.g. `dropped_out`) were parsed as claim words; positive/negative added to the direction vocabulary.

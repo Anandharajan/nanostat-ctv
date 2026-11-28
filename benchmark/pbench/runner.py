@@ -25,6 +25,21 @@ from nanostat.prompting import PROMPT_VERSION, prompt_hash
 from nanostat.schemas import Budget, Study
 
 
+def _token_counter(gen: object) -> object | None:
+    """The CallStats of an OpenAICompatClient behind a bound `generate`, if any (for resource accounting)."""
+    return getattr(getattr(gen, "__self__", None), "stats", None)
+
+
+def _tok(stats: object | None) -> tuple[int, int, int]:
+    if stats is None:
+        return (0, 0, 0)
+    return (
+        int(getattr(stats, "prompt_tokens", 0)),
+        int(getattr(stats, "completion_tokens", 0)),
+        int(getattr(stats, "calls", 0)),
+    )
+
+
 def opaque_id(key: str) -> str:
     return "pb_" + hashlib.sha256(key.encode()).hexdigest()[:12]
 
@@ -63,12 +78,15 @@ def run_pbench(
                 planner = planner_for_trial(trial)
             else:
                 assert generate_for_trial is not None
-                planner = LLMPlanner(generate_for_trial(trial))
+                gen = generate_for_trial(trial)
+                planner = LLMPlanner(gen)
             for t in tasks:
                 if (t["key"], trial) in done:
                     continue
                 df = pd.read_csv(t["dir"] / "dataset.csv", low_memory=False)
                 t0 = time.perf_counter()
+                stats = _token_counter(getattr(planner, "generate", None))
+                tok0 = _tok(stats)
                 rec = run_analysis(
                     t["question"],
                     Study(),
@@ -89,6 +107,9 @@ def run_pbench(
                             "prompt_hash": prompt_hash(),
                             "max_steps": max_steps,
                             "seconds": round(time.perf_counter() - t0, 3),
+                            "prompt_tokens": _tok(stats)[0] - tok0[0],
+                            "completion_tokens": _tok(stats)[1] - tok0[1],
+                            "llm_calls": _tok(stats)[2] - tok0[2],
                             "status": _status(rec),
                             "method": r.method,
                             "p_value": r.p_value,
@@ -123,8 +144,10 @@ def score_pbench_traces(traces: Path, label: str) -> dict[str, Any]:
     status: dict[str, int] = {}
     for r in rows:
         status[r["status"]] = status.get(r["status"], 0) + 1
+    cost = {k: sum(r.get(k, 0) for r in rows) for k in ("prompt_tokens", "completion_tokens", "llm_calls", "seconds")}
     return {
         "label": label,
+        "cost": cost,
         "tasks_scored": len(answers),
         "trial_rows": len(rows),
         "status_counts": status,

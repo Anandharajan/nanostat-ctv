@@ -25,6 +25,21 @@ from nanostat.prompting import PROMPT_VERSION, prompt_hash
 from nanostat.schemas import Budget
 
 
+def _token_counter(gen: object) -> object | None:
+    """The CallStats of an OpenAICompatClient behind a bound `generate`, if any (for resource accounting)."""
+    return getattr(getattr(gen, "__self__", None), "stats", None)
+
+
+def _tok(stats: object | None) -> tuple[int, int, int]:
+    if stats is None:
+        return (0, 0, 0)
+    return (
+        int(getattr(stats, "prompt_tokens", 0)),
+        int(getattr(stats, "completion_tokens", 0)),
+        int(getattr(stats, "calls", 0)),
+    )
+
+
 def _done(traces: Path) -> set[tuple[str, int]]:
     if not traces.exists():
         return set()
@@ -54,11 +69,13 @@ def run_llm_eval(
     with traces.open("a", encoding="utf-8") as f:
         for trial in range(trials):
             gen = generate_for_trial(trial)
+            stats = _token_counter(gen)
             for t in tasks:
                 if (t.task_id, trial) in done:
                     continue
                 df = pd.read_csv(data_dir / t.data_ref)
                 t0 = time.perf_counter()
+                tok0 = _tok(stats)
                 rec = run_analysis(
                     t.question,
                     t.study,
@@ -79,6 +96,9 @@ def run_llm_eval(
                             "prompt_hash": prompt_hash(),
                             "max_steps": max_steps,
                             "seconds": round(time.perf_counter() - t0, 3),
+                            "prompt_tokens": _tok(stats)[0] - tok0[0],
+                            "completion_tokens": _tok(stats)[1] - tok0[1],
+                            "llm_calls": _tok(stats)[2] - tok0[2],
                             "raw_outputs": rec.raw_outputs,
                             "attempts": rec.attempts,
                             "operational_failure": rec.operational_failure,
@@ -121,6 +141,10 @@ def score_traces(traces: Path, model_label: str | None = None) -> dict[str, Any]
         if ans_rows
         else None,
         "mean_seconds_per_task": sum(r["seconds"] for r in rows) / len(rows) if rows else None,
+        "total_prompt_tokens": sum(r.get("prompt_tokens", 0) for r in rows),
+        "total_completion_tokens": sum(r.get("completion_tokens", 0) for r in rows),
+        "total_llm_calls": sum(r.get("llm_calls", 0) for r in rows),
+        "total_seconds": sum(r["seconds"] for r in rows),
         "per_trial": per_trial,
     }
     # pass@1 = mean over trials of the per-trial rates

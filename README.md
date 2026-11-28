@@ -135,19 +135,19 @@ nanostat train --stage sft-data --data data --out data/sft.jsonl
 
 ### Measured results
 
-**CPU ablation of the training signal** ([docs/ABLATION_RESULTS.md](docs/ABLATION_RESULTS.md)) — 1,400 synthetic tasks, linear-softmax *proxy policy* (not the LLM), matched budget, 5 seeds, locked test split (505 tasks, 88 twin pairs):
+**CPU ablation of the training signal** ([docs/ABLATION_RESULTS.md](docs/ABLATION_RESULTS.md)) — 1,400 synthetic tasks, linear-softmax *proxy policy* (not the LLM), **compute-matched at 19,200 generated rollouts per arm**, 5 seeds, locked test split (505 tasks, 88 twin pairs):
 
 | Arm | Method validity | Invalid-method rate | Twin consistency | Abstention correct | Strict (single ref.) |
 |---|---|---|---|---|---|
 | S0 (SFT only) | 0.795 ± 0.073 | 0.109 | 0.570 | 0.236 | 0.787 |
-| R-F (Fisher-style reward) | 0.891 ± 0.065 | 0.105 | 0.605 | 0.000 | 0.889 |
-| R-A | 0.945 ± 0.068 | 0.008 | 0.698 | 0.440 | 0.910 |
-| R-AD | 0.943 ± 0.089 | 0.004 | 0.675 | 0.064 | 0.914 |
-| R-ADT | 0.953 ± 0.066 | 0.011 | 0.702 | 0.112 | 0.924 |
-| **R-CTV** | **0.977 ± 0.012** | 0.010 | 0.691 | 0.084 | **0.941** |
-| R-CTV-abs (post-hoc) | 0.922 ± 0.093 | 0.018 | 0.698 | 0.508 | 0.887 |
+| R-F (Fisher-style reward) | 0.880 ± 0.074 | 0.116 | 0.580 | 0.000 | 0.876 |
+| R-A | 0.922 ± 0.068 | 0.011 | 0.661 | 0.440 | 0.890 |
+| R-AD | 0.939 ± 0.083 | 0.014 | 0.643 | 0.012 | 0.900 |
+| R-ADT | 0.933 ± 0.095 | 0.015 | 0.657 | 0.044 | 0.898 |
+| **R-CTV** | **0.938 ± 0.086** | 0.015 | **0.664** | 0.048 | **0.908** |
+| R-CTV-abs (post-hoc) | 0.877 ± 0.107 | 0.018 | 0.648 | 0.488 | 0.842 |
 
-R-CTV − R-F (paired bootstrap, Holm): validity **+0.086 [+0.067, +0.106]**, twin consistency **+0.086 [+0.045, +0.136]**, agent FPR no detectable difference (all RL arms ≈ 4.4% on fresh null simulations). Negative finding: discordance sampling starves abstention tasks (D = 0 there); the post-hoc D = 1 fix restores abstention but costs validity at this budget. The validity constraint showed no measurable effect in this setting. These are proxy-policy results about the training signal, not LLM accuracy.
+R-CTV − R-F (paired bootstrap, Holm): validity **+0.058 [+0.043, +0.073]**, twin consistency **+0.084 [+0.048, +0.125]**, agent FPR no difference. The admissible-set reward (A) carries the effect; D, T and V were not separable from A at this scale; discordance sampling starves abstention tasks. *An earlier version of this table was not compute-matched (uncounted re-samples); see the correction notice in the results document.*
 
 **Agent-level null calibration of B0** (1,000 fresh null simulations per scenario, judged against the null of the test actually run): every agent false-positive rate is within or below 0.05 ± CI (two-group clean small: 0.063 [0.049, 0.080], the same as fixed Welch on identical simulations). The registry's invalid labels are confirmed by the fixed-method arms: Student t 14.1% and permutation 14.5% under unequal variances; Pearson 48.8% under leverage points; the agent avoids them. Full table in [docs/ABLATION_RESULTS.md](docs/ABLATION_RESULTS.md).
 

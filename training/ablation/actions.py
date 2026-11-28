@@ -29,7 +29,15 @@ class ActionSpec:
 
 
 def build_catalogue() -> list[ActionSpec]:
-    acts = [ActionSpec("execute", d, m) for m, tool in sorted(REGISTRY.items()) for d in tool.designs]
+    # The proxy policy has no model-specification head, so model-based designs (regression / survival)
+    # are not in its action space; those tasks are skipped by the ablation tables.
+    model_designs = (Design.regression, Design.survival)
+    acts = [
+        ActionSpec("execute", d, m)
+        for m, tool in sorted(REGISTRY.items())
+        for d in tool.designs
+        if d not in model_designs
+    ]
     acts.append(ActionSpec("clarify", reason=ReasonCode.missing_pair_id))
     acts.append(ActionSpec("abstain", reason=ReasonCode.no_admissible_method))
     return acts
