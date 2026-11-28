@@ -1,0 +1,5 @@
+torch==2.14.0
+transformers==5.22.1
+vllm==0.34.0
+Tesla T4
+d5e94d4

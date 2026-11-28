@@ -1,5 +1,10 @@
 # STATUS
 
+## 2026-11-28: B1 with prompt v3 measured (dev, same tasks as v2)
+- Colab T4 with traces written to Google Drive (survives disconnects; three earlier attempts were lost to runtime resets). Zip verified (sha256 fb761960…0d28d).
+- v2 → v3: schema-valid first plans 0 → 16/92; execute chosen 1 → 62/92; no operational failure 0 → 12/92 (single shot) and 20/92 (3 steps), but almost all of those end in clarify; executed-and-valid 0 → 1/88. Remaining blockers: column-role mapping wrong in 51/92 first plans, empty reason_code on 13 execute plans. Details: docs/LLM_B1_BASELINE.md.
+- Decision recorded: stop prompt tuning on dev; next is SFT on gold plans. A role-copying post-processor would be a separate, disclosed arm.
+
 ## 2026-11-28: first LLM baseline (B1) measured on Colab
 - `notebooks/03_llm_b1_colab.ipynb` run on a free Colab T4 through Chrome: Qwen2.5-Coder-1.5B-Instruct served by vLLM 0.34.0, prompt `typed-plan-v2`, dev split 92 tasks.
 - **Result: 0/92 runnable plans** in both single shot (92 calls) and 3-step (276 calls) mode. Method validity 0/88, operational failure 92/92. Causes: column names used as roles (50), estimand family written as estimand (34), clarify without reason_code (32), invented check names (13); clarify chosen on 91/92. Re-planning cannot help, because schema-failure feedback is only "output was not a valid typed plan JSON".

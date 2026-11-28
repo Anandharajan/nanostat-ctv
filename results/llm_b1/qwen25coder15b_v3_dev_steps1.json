@@ -1,0 +1,206 @@
+{
+  "model": "B1:qwen2.5-coder-1.5b-instruct:steps1",
+  "prompt_version": "typed-plan-v3",
+  "prompt_hash": "fa4acf5922308339",
+  "n_rows": 92,
+  "trials": 1,
+  "first_attempt_json_valid_rate": 0.17391304347826086,
+  "first_attempt_invalid_method_rate": 0.06818181818181818,
+  "first_attempt_admissible_rate": 0.09090909090909091,
+  "mean_seconds_per_task": 3.4913804347826085,
+  "total_prompt_tokens": 114241,
+  "total_completion_tokens": 17808,
+  "total_llm_calls": 92,
+  "total_seconds": 321.207,
+  "per_trial": {
+    "0": {
+      "method_validity_rate": {
+        "k": 1,
+        "n": 88,
+        "rate": 0.011363636363636364,
+        "ci95": [
+          0.0002876609811015659,
+          0.06169375395938655
+        ]
+      },
+      "invalid_method_rate": {
+        "k": 0,
+        "n": 88,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.04105262905807801
+        ]
+      },
+      "abstention_correctness": {
+        "k": 0,
+        "n": 4,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.6023646356164746
+        ]
+      },
+      "false_abstention_rate": {
+        "k": 87,
+        "n": 88,
+        "rate": 0.9886363636363636,
+        "ci95": [
+          0.9383062460406134,
+          0.9997123390188984
+        ]
+      },
+      "twin_consistency_accuracy": {
+        "k": 0,
+        "n": 13,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.24705263800047095
+        ]
+      },
+      "operational_failure_rate": {
+        "k": 80,
+        "n": 92,
+        "rate": 0.8695652173913043,
+        "ci95": [
+          0.7832387511264561,
+          0.9307473145482565
+        ]
+      },
+      "strict_single_reference": {
+        "k": 1,
+        "n": 88,
+        "rate": 0.011363636363636364,
+        "ci95": [
+          0.0002876609811015659,
+          0.06169375395938655
+        ]
+      },
+      "task_level_reject_rate_true_null": {
+        "k": 0,
+        "n": 21,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.1610976152190796
+        ]
+      },
+      "method_validity_by_family": {
+        "binary_two_group": {
+          "k": 0,
+          "n": 9,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.3362671168799428
+          ]
+        },
+        "correlation": {
+          "k": 0,
+          "n": 8,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.3694166475528192
+          ]
+        },
+        "k_group": {
+          "k": 0,
+          "n": 5,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.5218237501049814
+          ]
+        },
+        "one_proportion": {
+          "k": 0,
+          "n": 5,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.5218237501049814
+          ]
+        },
+        "paired": {
+          "k": 1,
+          "n": 11,
+          "rate": 0.09090909090909091,
+          "ci95": [
+            0.002298972213814269,
+            0.4127799169883827
+          ]
+        },
+        "reg_binary": {
+          "k": 0,
+          "n": 7,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.4096163972250034
+          ]
+        },
+        "reg_cox": {
+          "k": 0,
+          "n": 6,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.4592581264399005
+          ]
+        },
+        "reg_iv": {
+          "k": 0,
+          "n": 8,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.3694166475528192
+          ]
+        },
+        "reg_linear": {
+          "k": 0,
+          "n": 14,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.23163576165011648
+          ]
+        },
+        "reg_panel": {
+          "k": 0,
+          "n": 4,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.6023646356164746
+          ]
+        },
+        "reg_survgroup": {
+          "k": 0,
+          "n": 3,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.7075982261787133
+          ]
+        },
+        "two_group": {
+          "k": 0,
+          "n": 8,
+          "rate": 0.0,
+          "ci95": [
+            0.0,
+            0.3694166475528192
+          ]
+        }
+      }
+    }
+  },
+  "method_validity_rate_pass1": 0.011363636363636364,
+  "strict_single_reference_pass1": 0.011363636363636364,
+  "twin_consistency_accuracy_pass1": 0.0,
+  "abstention_correctness_pass1": 0.0,
+  "operational_failure_rate_pass1": 0.8695652173913043
+}
