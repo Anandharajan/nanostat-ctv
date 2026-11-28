@@ -7,7 +7,7 @@
 - Reward-hacking demo (seed 0, 12,800 rollouts): MALFORMED 0.0 → 240/600 broken plans, invalid rate 0.028, validity 0.572; MALFORMED −0.5 → 0 broken, invalid 0.433, validity 0.567.
 - **Found:** the main reward (`training/reward_server.py`) scores broken plans 0.0 > invalid −0.2, the same hack. Recorded as an open issue in docs/limitations.md. Whether the CPU ablation's invalid-rate result is affected: NOT MEASURED.
 - In-browser demo, 5 seeds (validity % at steps 25/50/100): Fisher-style 55/80/99, CTV 72/91/100.
-- `pytest` 311 passed (8 new in tests/unit/test_edu.py; they skip without torch). ruff and mypy clean. Pages site: not yet deployed.
+- `pytest` 311 passed (8 new in tests/unit/test_edu.py; they skip without torch). ruff and mypy clean. CI run 5 green. Pages: deployed by workflow run 2 to https://anandharajan.github.io/nanostat-ctv/; all 9 lessons and demo.js return 200.
 
 ## 2026-11-28: publication readiness and compute parity
 - **Found and fixed:** the CPU ablation was not compute-matched (re-sampled rollouts uncounted; twin batches overshot). It now matches arms on generated rollouts (19,200 per arm). Re-run on identical tables: R-CTV - R-F validity +0.058 [+0.043, +0.073] (was +0.086), twin consistency +0.084 [+0.048, +0.125], FPR no difference; D/T/V not separable from A. docs/ABLATION_RESULTS.md has a correction notice.
