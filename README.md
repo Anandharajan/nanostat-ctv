@@ -4,7 +4,13 @@
 
 NanoStat-CTV turns a research question + a CSV into a **typed analysis plan** (JSON), checks the plan against your design and data, runs it with a whitelisted CPU executor, and returns a result, a clarification request, or a justified abstention — plus a reproducible audit bundle.
 
-> **Status — v0.3.0 (CPU release).** Executor, two-gate verifier with a locked analysis protocol, rule-based planner, CLI, local API, audit bundle, synthetic benchmark factory, the CTV reward/constraint library, a clean-room P-Bench scorer and pinned P-Bench harness (coverage ceiling 97.9%), nine model-based tools (OLS/robust/cluster, Wald/F, logistic, probit, 2SLS, log-rank, Cox, mixed, Tobit), a local-LLM planner via [Magnitude](docs/LOCAL_LLM_VALIDATION.md), and a measured CPU ablation of the training signal are implemented and tested. **The 1.5B LLM planner has not been trained** (GPU milestones: NOT RUN). Today the planner is a deterministic rule system. See [STATUS.md](STATUS.md), [docs/AUDIT.md](docs/AUDIT.md) and [docs/limitations.md](docs/limitations.md).
+> **Status — v0.4.0 (CPU release).** Executor, two-gate verifier with a locked analysis protocol, rule-based planner, CLI, local API, audit bundle, synthetic benchmark factory, the CTV reward/constraint library, a clean-room P-Bench scorer and pinned P-Bench harness (coverage ceiling 97.9%), nine model-based tools (OLS/robust/cluster, Wald/F, logistic, probit, 2SLS, log-rank, Cox, mixed, Tobit), a local-LLM planner via [Magnitude](docs/LOCAL_LLM_VALIDATION.md), and a measured CPU ablation of the training signal are implemented and tested. **The 1.5B LLM planner has not been trained** (GPU milestones: NOT RUN). Today the planner is a deterministic rule system. See [STATUS.md](STATUS.md), [docs/AUDIT.md](docs/AUDIT.md) and [docs/limitations.md](docs/limitations.md).
+
+## Learn how it works: nanostat (no install needed)
+
+**[Try the in-browser demo and 9 lessons →](https://anandharajan.github.io/nanostat-ctv/)**
+
+A nanoGPT-style teaching track: one file ([`edu/nanostat.py`](edu/nanostat.py)) with hypothesis tests written from scratch, answer keys, typed plans, two verifiable rewards, a 104k-parameter GPT, SFT, GRPO and a compute-matched experiment. It includes a lesson that reproduces reward hacking on purpose. Run it in [Colab](https://colab.research.google.com/github/Anandharajan/nanostat-ctv/blob/main/edu/nanostat_colab.ipynb) or locally with `pip install numpy scipy torch`. See [edu/README.md](edu/README.md).
 
 ## Quickstart (≈2 minutes, CPU only)
 

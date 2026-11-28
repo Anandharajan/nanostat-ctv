@@ -1,0 +1,9 @@
+observation: does study time increase the score ? cols:xy outl:no
+  gold plan: ['correlation', 'pearson', 'greater'] | A: ['pearson', 'spearman'] | B: {} | effect: small 
+
+observation: does the treatment change the score compared with control ? cols:group outl:yes var:high
+  gold plan: ['two_group', 'mann_whitney', 'two-sided'] | A: ['mann_whitney'] | B: {'student_t': 'outlier-driven', 'welch_t': 'outlier-driven'} | effect: large 
+
+observation: does study time change the score ? cols:xy outl:yes
+  gold plan: ['correlation', 'spearman', 'two-sided'] | A: ['spearman'] | B: {'pearson': 'leverage-driven'} | effect: large 
+

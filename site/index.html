@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nanostat — learn agent RL with verifiable rewards</title>
+<meta name="description" content="A tiny, hands-on demo: when statistical tests lie, why reward design matters, and how RL with verifiable rewards trains a small agent. Runs in your browser.">
+<style>
+  :root { --bg:#fbfbfa; --fg:#1d1d1b; --muted:#6b6b66; --card:#ffffff; --line:#e4e3de; --grid:#ecebe6;
+          --c1:#2a6fdb; --c2:#d9822b; --ok:#2e8b57; --bad:#c0392b; --hl:#fff4e0; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#131312; --fg:#ecebe6; --muted:#9a9990; --card:#1c1c1a; --line:#2e2e2b; --grid:#2a2a27;
+          --c1:#6fa3ff; --c2:#f0a35c; --ok:#5cc28a; --bad:#ef6b5b; --hl:#3a2f1c; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.9rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  .lede { color: var(--muted); margin: 0 0 1.5rem; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin: 18px 0; }
+  h2 { font-size: 1.2rem; margin: 0 0 .25rem; }
+  .sub { color: var(--muted); margin: 0 0 12px; font-size: .95rem; }
+  .controls { display:flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  select, input, button { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+  input { width: 90px; }
+  button { background: var(--c1); color: #fff; border: none; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .bar-row { display:grid; grid-template-columns: 150px 1fr 60px; gap: 10px; align-items: center; margin: 6px 0; font-size: .92rem; }
+  .bar-track { position: relative; height: 18px; background: var(--grid); border-radius: 4px; }
+  .bar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--muted); border-radius: 4px; }
+  .bar.ok { background: var(--ok); } .bar.bad { background: var(--bad); }
+  .bar-line { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--fg); }
+  .bar-val { text-align: right; font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  tr.hl td { background: var(--hl); }
+  .note { color: var(--muted); font-size: .9rem; margin-top: 8px; }
+  canvas { width: 100%; height: 240px; display: block; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; margin-right: 16px; font-size: .9rem; }
+  .legend i { width: 14px; height: 3px; display:inline-block; border-radius: 2px; }
+  .lessons { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+  .lessons a { display:block; padding: 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--fg); text-decoration: none; }
+  .lessons a:hover { border-color: var(--c1); }
+  .lessons b { display:block; } .lessons small { color: var(--muted); }
+  a { color: var(--c1); }
+  code { background: var(--grid); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+  footer { color: var(--muted); font-size: .85rem; margin-top: 28px; }
+  @media (max-width: 560px) { .bar-row { grid-template-columns: 110px 1fr 52px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>nanostat</h1>
+  <p class="lede">Learn how today's AI agents are trained with <b>verifiable rewards</b> — on a problem small enough to see every number.
+    A tiny agent must pick a statistical test. Code runs the test. Rewards decide what it learns. Everything below runs in your browser.</p>
+
+  <section>
+    <h2>1 · When do statistical tests lie?</h2>
+    <p class="sub">Simulate 500 datasets where nothing is going on. A trustworthy test should cry "significant!" only about 5% of the time.</p>
+    <div class="controls">
+      <label>world <select id="null-world"></select></label>
+      <label>seed <input id="null-seed" type="number" value="1"></label>
+      <button id="null-go">Simulate</button>
+    </div>
+    <div id="null-out"></div>
+    <p class="note" id="null-note"></p>
+    <p class="note">Try <code>two_group/unequal_var</code> (Student's t lies) and <code>correlation/outliers</code> (Pearson lies badly).</p>
+  </section>
+
+  <section>
+    <h2>2 · Two ways to reward an agent</h2>
+    <p class="sub"><b>Fisher-style:</b> "your p-value should be close to the reference p-value." <b>CTV:</b> "your method must be one of the
+      defensible ones; invalid methods are penalised." Rows highlighted are <b>invalid</b> methods that the Fisher-style reward still pays well.</p>
+    <div class="controls">
+      <label>world <select id="rw-world"></select></label>
+      <label>true effect <select id="rw-effect"><option>null</option><option selected>small</option><option>large</option></select></label>
+      <label>seed <input id="rw-seed" type="number" value="7"></label>
+      <button id="rw-go">New task</button>
+    </div>
+    <p class="note" id="rw-task"></p>
+    <div id="rw-out"></div>
+  </section>
+
+  <section>
+    <h2>3 · Train a tiny agent with each reward (same compute)</h2>
+    <p class="sub">Both agents start with a "textbook" habit (always the classic parametric test). Each step samples 8 plans for 8 tasks,
+      scores them, and nudges the policy toward above-average plans (GRPO). Both arms generate exactly the same number of plans.
+      Averaged over 5 seeds, after 25 steps the CTV agent picks a defensible test on ~72% of tasks vs ~55% for the Fisher-style agent;
+      both approach 100% by ~100 steps in this easy world. The full GPT version is in lesson 8.</p>
+    <div class="controls">
+      <label>seed <input id="tr-seed" type="number" value="3"></label>
+      <label>steps <input id="tr-steps" type="number" value="100"></label>
+      <button id="tr-go">Train both</button>
+      <span class="note" id="tr-step"></span>
+    </div>
+    <div class="legend"><span><i style="background:var(--c1)"></i>CTV reward</span><span><i style="background:var(--c2)"></i>Fisher-style reward</span>
+      <span class="note">y = share of test tasks where the agent picks a defensible method</span></div>
+    <canvas id="tr-canvas" width="880" height="240"></canvas>
+    <p class="note" id="tr-final"></p>
+  </section>
+
+  <section>
+    <h2>Lessons — build it yourself</h2>
+    <p class="sub">The same ideas in one Python file (<code>edu/nanostat.py</code>, ~580 lines) with a real tiny GPT written from scratch.
+      <a href="https://colab.research.google.com/github/Anandharajan/nanostat-ctv/blob/main/edu/nanostat_colab.ipynb">Open all lessons in Google Colab</a> — nothing to install.</p>
+    <div class="lessons">
+      <a href="lessons/01-statistics.html"><b>1 · Tests from scratch</b><small>t-tests, ranks, correlation — checked against scipy</small></a>
+      <a href="lessons/02-null-simulation.html"><b>2 · Simulate the null</b><small>why method choice matters</small></a>
+      <a href="lessons/03-tasks-and-plans.html"><b>3 · Tasks, answer keys, typed plans</b><small>why the model never computes a number</small></a>
+      <a href="lessons/04-rewards.html"><b>4 · Rewards and reward hacking</b><small>break both rewards on purpose</small></a>
+      <a href="lessons/05-tiny-gpt.html"><b>5 · A tiny GPT</b><small>~100k parameters, written out like nanoGPT</small></a>
+      <a href="lessons/06-sft.html"><b>6 · Supervised fine-tuning</b><small>learning a habit from demonstrations</small></a>
+      <a href="lessons/07-grpo.html"><b>7 · GRPO</b><small>RL with verifiable rewards, from scratch</small></a>
+      <a href="lessons/08-the-experiment.html"><b>8 · The experiment</b><small>compare rewards at equal compute — honestly</small></a>
+      <a href="lessons/09-next-steps.html"><b>9 · From nano to real</b><small>how each piece maps to the full system and frontier labs</small></a>
+    </div>
+  </section>
+
+  <footer>nanostat is the teaching companion of <a href="https://github.com/Anandharajan/nanostat-ctv">NanoStat-CTV</a> (Apache-2.0).
+    Synthetic data only; for learning, not for real-world statistical decisions.</footer>
+</main>
+<script src="demo.js"></script>
+</body>
+</html>

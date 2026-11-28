@@ -1,0 +1,3 @@
+student_t  ours 0.948617  scipy 0.948617
+welch_t    ours 0.945496  scipy 0.945496
+pearson    ours 0.877674  scipy 0.877674

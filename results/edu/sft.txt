@@ -1,0 +1,1 @@
+SFT (textbook teacher) final loss 0.77 | eval {'validity': 0.4683333333333333, 'invalid_rate': 0.5316666666666666, 'tail_acc': 1.0, 'agent_FPR': 0.08333333333333333}

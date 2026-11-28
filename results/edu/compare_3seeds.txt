@@ -1,0 +1,19 @@
+seed 1 S0 (SFT only)   validity 0.428  invalid_rate 0.532  tail_acc 0.915  agent_FPR 0.051
+seed 1 GRPO fisher     validity 0.468  invalid_rate 0.532  tail_acc 1.000  agent_FPR 0.050
+seed 1 GRPO ctv        validity 0.613  invalid_rate 0.250  tail_acc 1.000  agent_FPR 0.051
+seed 2 S0 (SFT only)   validity 0.468  invalid_rate 0.532  tail_acc 1.000  agent_FPR 0.050
+seed 2 GRPO fisher     validity 0.468  invalid_rate 0.532  tail_acc 1.000  agent_FPR 0.050
+seed 2 GRPO ctv        validity 0.855  invalid_rate 0.145  tail_acc 1.000  agent_FPR 0.036
+seed 3 S0 (SFT only)   validity 0.412  invalid_rate 0.532  tail_acc 0.933  agent_FPR 0.053
+seed 3 GRPO fisher     validity 0.450  invalid_rate 0.532  tail_acc 0.928  agent_FPR 0.055
+seed 3 GRPO ctv        validity 0.595  invalid_rate 0.405  tail_acc 1.000  agent_FPR 0.046
+
+arm                       validity      invalid_rate          tail_acc         agent_FPR
+S0 (SFT only)         0.436 +/-0.024      0.532 +/-0.000      0.949 +/-0.037      0.051 +/-0.001
+GRPO fisher           0.462 +/-0.009      0.532 +/-0.000      0.976 +/-0.034      0.051 +/-0.002
+GRPO ctv              0.688 +/-0.118      0.267 +/-0.107      1.000 +/-0.000      0.045 +/-0.006
+(each GRPO arm generated exactly 25600 plans per seed; same SFT start per seed)
+
+real	6m3.023s
+user	0m0.016s
+sys	0m0.046s

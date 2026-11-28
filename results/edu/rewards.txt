@@ -1,0 +1,5 @@
+['two_group', 'mann_whitney', 'less']              p=0.13433911486438632  fisher=1.000  ctv=1.000
+['two_group', 'welch_t', 'less']                   p=0.053193308582870254  fisher=0.682  ctv=-0.200
+['two_group', 'student_t', 'less']                 p=0.05152437653244094  fisher=0.674  ctv=-0.200
+['two_group', 'mann_whitney', 'greater']           p=0.8656608851356137  fisher=0.338  ctv=-0.200
+['paired', 'wilcoxon', 'less']                     p=None  fisher=0.000  ctv=-0.500

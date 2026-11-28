@@ -1,0 +1,7 @@
+two_group    none         student_t 0.055  welch_t 0.055  mann_whitney 0.060
+two_group    unequal_var  student_t 0.157  welch_t 0.043  mann_whitney 0.107
+two_group    outliers     student_t 0.045  welch_t 0.043  mann_whitney 0.052
+paired       none         student_t 0.000  welch_t 0.000  mann_whitney 0.000  paired_t 0.055  wilcoxon 0.047
+paired       outliers     student_t 0.000  welch_t 0.000  mann_whitney 0.000  paired_t 0.018  wilcoxon 0.063
+correlation  none         pearson 0.043  spearman 0.048
+correlation  outliers     pearson 0.480  spearman 0.073

@@ -1,5 +1,14 @@
 # STATUS
 
+## 2026-11-28: nanostat teaching track + GitHub Pages demo
+- `edu/nanostat.py` (578 lines, self-contained): 7 tests from scratch (checked against scipy), a task world with answer keys, typed 3-token plans plus a verifier, Fisher-style and CTV rewards, TinyGPT (104,064 params), grammar-constrained decoding, SFT (label smoothing), GRPO (k3 KL, rollout budget), evaluation, 3-seed experiment, CLI with one sub-command per lesson.
+- `site/`: in-browser demo (null simulator, reward playground, tabular GRPO at equal compute, all JS, no dependencies), 9 Jekyll lessons, Pages workflow `.github/workflows/pages.yml`; Colab notebook `edu/nanostat_colab.ipynb`.
+- Measured (`results/edu/`): 3 seeds × 25,600 plans per arm: validity SFT 0.436 ± 0.024 → Fisher-style 0.462 ± 0.009 → CTV 0.688 ± 0.118; invalid rate 0.532 → 0.532 → 0.267 ± 0.107; agent FPR not separated (0.051 / 0.051 / 0.045).
+- Reward-hacking demo (seed 0, 12,800 rollouts): MALFORMED 0.0 → 240/600 broken plans, invalid rate 0.028, validity 0.572; MALFORMED −0.5 → 0 broken, invalid 0.433, validity 0.567.
+- **Found:** the main reward (`training/reward_server.py`) scores broken plans 0.0 > invalid −0.2, the same hack. Recorded as an open issue in docs/limitations.md. Whether the CPU ablation's invalid-rate result is affected: NOT MEASURED.
+- In-browser demo, 5 seeds (validity % at steps 25/50/100): Fisher-style 55/80/99, CTV 72/91/100.
+- `pytest` 311 passed (8 new in tests/unit/test_edu.py; they skip without torch). ruff and mypy clean. Pages site: not yet deployed.
+
 ## 2026-11-28: publication readiness and compute parity
 - **Found and fixed:** the CPU ablation was not compute-matched (re-sampled rollouts uncounted; twin batches overshot). It now matches arms on generated rollouts (19,200 per arm). Re-run on identical tables: R-CTV - R-F validity +0.058 [+0.043, +0.073] (was +0.086), twin consistency +0.084 [+0.048, +0.125], FPR no difference; D/T/V not separable from A. docs/ABLATION_RESULTS.md has a correction notice.
 - Proxy action catalogue excludes model-based designs (no spec head), so the 18-action space is unchanged.

@@ -1,0 +1,3 @@
+SFT (textbook teacher) final loss 0.77 | eval {'validity': 0.4683333333333333, 'invalid_rate': 0.5316666666666666, 'tail_acc': 1.0, 'agent_FPR': 0.08333333333333333}
+GRPO[ctv] mean reward first/last 20 steps: 0.171 -> 0.591
+eval {'validity': 0.7033333333333334, 'invalid_rate': 0.2966666666666667, 'tail_acc': 1.0, 'agent_FPR': 0.0625}

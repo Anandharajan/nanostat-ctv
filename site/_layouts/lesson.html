@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ page.title }} · nanostat</title>
+<style>
+  :root { --bg:#fbfbfa; --fg:#1d1d1b; --muted:#6b6b66; --card:#ffffff; --line:#e4e3de; --grid:#ecebe6; --c1:#2a6fdb; --hl:#fff4e0; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#131312; --fg:#ecebe6; --muted:#9a9990; --card:#1c1c1a; --line:#2e2e2b; --grid:#2a2a27; --c1:#6fa3ff; --hl:#3a2f1c; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 780px; margin: 0 auto; padding: 28px 16px 64px; }
+  nav.top { font-size: .9rem; color: var(--muted); margin-bottom: 18px; } nav.top a { color: var(--muted); }
+  h1 { font-size: 1.8rem; margin: 0 0 .4rem; letter-spacing: -.01em; } h2 { font-size: 1.2rem; margin-top: 2rem; }
+  .goal { color: var(--muted); margin-top: 0; }
+  a { color: var(--c1); }
+  code { background: var(--grid); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+  pre { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font-size: .86rem; line-height: 1.45; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; font-size: .92rem; font-variant-numeric: tabular-nums; display: block; overflow-x: auto; }
+  th, td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--line); }
+  blockquote { margin: 1rem 0; padding: 8px 14px; background: var(--hl); border-radius: 8px; }
+  blockquote p { margin: .3rem 0; }
+  nav.pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .highlight .c, .highlight .c1 { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <nav class="top"><a href="{{ '/' | relative_url }}">nanostat</a> · Lesson {{ page.n }} of 9 ·
+    <a href="https://github.com/Anandharajan/nanostat-ctv/blob/main/edu/nanostat.py">edu/nanostat.py</a> ·
+    <a href="https://colab.research.google.com/github/Anandharajan/nanostat-ctv/blob/main/edu/nanostat_colab.ipynb">Colab</a></nav>
+  <h1>{{ page.n }} · {{ page.title }}</h1>
+  <p class="goal">{{ page.goal }}</p>
+  {{ content }}
+  <nav class="pager">
+    <span>{% if page.prev %}<a href="{{ page.prev }}.html">← {{ page.prev_title }}</a>{% endif %}</span>
+    <span>{% if page.next %}<a href="{{ page.next }}.html">{{ page.next_title }} →</a>{% else %}<a href="{{ '/' | relative_url }}">Back to the demo</a>{% endif %}</span>
+  </nav>
+</main>
+</body>
+</html>

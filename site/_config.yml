@@ -1,0 +1,11 @@
+title: nanostat
+baseurl: /nanostat-ctv
+description: Learn agent RL with verifiable rewards on a problem small enough to see every number.
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+defaults:
+  - scope: { path: "lessons" }
+    values: { layout: lesson }
+exclude: [README.md]
