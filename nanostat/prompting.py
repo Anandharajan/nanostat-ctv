@@ -9,31 +9,48 @@ import json
 from typing import Any
 
 from nanostat.protocol import build_protocol
-from nanostat.schemas import Study
+from nanostat.schemas import ROLE_NAMES, Check, Design, ReasonCode, Study
 from nanostat.tools import REGISTRY
 
-PROMPT_VERSION = "typed-plan-v2"
+PROMPT_VERSION = "typed-plan-v3"
+# v3 (2026-11-28, tuned on the DEV split only after the v2 B1 baseline, docs/LLM_B1_BASELINE.md): enumerate
+# every allowed value instead of placeholders, copy column roles from Study.roles, omit the optional estimand,
+# make execute the default and clarify conditional on a named missing fact, and ask for raw JSON.
+
+_ROLES = ", ".join(sorted(ROLE_NAMES))
+_CHECKS = ", ".join(c.value for c in Check)
+_REASONS = ", ".join(r.value for r in ReasonCode)
+_DESIGNS = "|".join(d.value for d in Design)
 
 SYSTEM = (
     "You are NanoStat, a statistical planning assistant. Read the question, the study metadata, the "
-    "locked protocol and the data profile, then output ONE JSON typed analysis plan and nothing else. "
-    "Never compute or state statistics yourself (no p-values or test statistics in your answer): a "
-    "deterministic executor runs the plan. The protocol (alpha, direction, estimand family, null value) "
-    "is locked: do not change it. Use the study's declared roles for `columns`. If a required fact is "
-    "missing (e.g. repeated measures but no subject ID), output action=clarify with a reason_code; if no "
-    "method is valid for this design and data, output action=abstain with reason_code=no_admissible_method."
+    "locked protocol and the data profile, then output ONE JSON typed analysis plan. Output raw JSON only: "
+    "no markdown, no code fences, no text before or after. Never compute or state statistics yourself "
+    "(no p-values or test statistics): a deterministic executor runs the plan. The protocol (alpha, direction, "
+    "estimand family, null value) is locked: do not restate or change it.\n"
+    "Rules:\n"
+    '1. action is "execute" whenever Study.roles names the columns your design needs. This is the normal case.\n'
+    '2. Use "clarify" ONLY if a required fact is missing (e.g. repeated measures but no pair_id role: '
+    'reason_code missing_pair_id; a one-sample question with no null value: missing_null_value). Use "abstain" '
+    "with reason_code no_admissible_method only if no listed method is valid. clarify and abstain MUST include "
+    f"reason_code, one of: {_REASONS}.\n"
+    f"3. columns maps ROLE -> COLUMN. Copy it from Study.roles. Keys must be role names ({_ROLES}), never "
+    'column names. Example: Study.roles {"y":"score","group":"arm"} gives columns {"y":"score","group":"arm"}.\n'
+    '4. Omit "estimand". It is optional, and the locked estimand_family (e.g. "typical") is NOT an estimand value.\n'
+    f"5. checks is optional. If you add checks, each check must be one of: {_CHECKS}; verdict is ok or violated, "
+    "as read from the profile.\n"
+    "6. method must be listed under your design in Methods by design."
 )
 
 PLAN_FIELDS = (
-    '{"action": "execute|clarify|abstain", '
-    '"design": "independent_two_group|paired|correlation|k_group|one_sample|regression|survival", '
-    '"method": "<one of Methods>", "estimand": "<optional>", '
-    '"columns": {"<role>": "<column>"}, "checks": [{"check": "<name>", "verdict": "ok|violated"}], '
+    f'{{"action": "execute|clarify|abstain", "design": "{_DESIGNS}", '
+    '"method": "<one of Methods for that design>", '
+    '"columns": {"<role>": "<column>"}, "checks": [{"check": "<check name>", "verdict": "ok|violated"}], '
     '"model": {"outcome": str, "exposure": [str], "covariates": [str], "categorical": [str], '
     '"se": "classical|HC0|HC1|HC2|HC3|cluster", "cluster": str, "weights": str, "instruments": [str], '
     '"time": str, "event": str, "group": str, "restriction": "each|joint_zero|equal", "ties": "efron|breslow"} '
     "(model is REQUIRED for design regression/survival; omit otherwise), "
-    '"reason_code": "missing_pair_id|missing_null_value|no_admissible_method|... (clarify/abstain only)", '
+    '"reason_code": "<clarify/abstain only>", '
     '"rationale": "<= 30 words"}'
 )
 
@@ -60,7 +77,7 @@ def render_prompt(question: str, study: Study, prof: dict[str, Any], feedback: l
         SYSTEM,
         f"Methods by design: {_methods_by_design()}",
         f"Plan schema: {PLAN_FIELDS}",
-        f"Example (format only): {EXAMPLE}",
+        f"Examples (format only; your columns come from YOUR Study.roles): {EXAMPLE}",
         f"Question: {question}",
         "Study: " + study.model_dump_json(exclude_none=True, exclude_defaults=True),
         "Locked protocol: " + proto.model_dump_json(exclude={"source"}),

@@ -14,7 +14,7 @@ import pandas as pd
 
 from nanostat.audit.events import AuditLog
 from nanostat.dsl import PreprocessError
-from nanostat.planner import Planner, RulePlanner
+from nanostat.planner import Planner, RulePlanner, plan_errors
 from nanostat.profiler import profile
 from nanostat.schemas import (
     Action,
@@ -131,7 +131,7 @@ def run_analysis(
         if plan is None:
             failure = "bad_plan_json"
             audit.add("plan_rejected", {"attempt": attempts, "error": failure})
-            feedback = ["output was not a valid typed plan JSON"]
+            feedback = plan_errors(raw) or ["output was not a valid typed plan JSON"]
             continue
         audit.add("plan", {"attempt": attempts, "planner": planner.name, "plan": plan.model_dump(mode="json")})
         rep = verify(plan, df, prof, study, question, mode=mode)

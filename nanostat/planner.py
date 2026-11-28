@@ -19,7 +19,18 @@ from nanostat.policy import lookup
 from nanostat.profiler import column_info
 from nanostat.prompting import render_prompt
 from nanostat.protocol import allowed_estimands, build_protocol
-from nanostat.schemas import Action, CheckClaim, Design, Estimand, OutcomeType, Plan, ReasonCode, Study
+from nanostat.schemas import (
+    ROLE_NAMES,
+    Action,
+    Check,
+    CheckClaim,
+    Design,
+    Estimand,
+    OutcomeType,
+    Plan,
+    ReasonCode,
+    Study,
+)
 from nanostat.tools import REGISTRY
 from nanostat.tools.base import RunContext
 from nanostat.verifier import expected_clarification, pair_id_columns
@@ -240,6 +251,44 @@ def parse_plan(text: str) -> tuple[Plan | None, str | None]:
         return Plan.model_validate(obj), None
     except ValidationError as e:
         return None, f"schema_error:{e.error_count()}"
+
+
+def plan_errors(text: str) -> list[str]:
+    """Field-level, actionable reasons why `text` is not a valid typed plan (fed back to the model on re-plan).
+    Lists the allowed values so a small model can repair its own output. No code is executed."""
+    m = _JSON_RE.search(text)
+    if not m:
+        return ["no JSON object found: output exactly one JSON object, with no code fences or prose"]
+    try:
+        obj = json.loads(m.group(0))
+    except json.JSONDecodeError as e:
+        return [f"invalid JSON syntax ({e.msg} at position {e.pos})"]
+    try:
+        Plan.model_validate(obj)
+        return []
+    except ValidationError as e:
+        hints = {
+            "columns": "keys must be role names "
+            + str(sorted(ROLE_NAMES))
+            + "; copy columns from Study.roles (role -> column), never use column names as keys",
+            "estimand": "omit estimand (optional); the protocol's estimand_family is not an estimand value",
+            "checks": "check must be one of " + str([c.value for c in Check]),
+            "reason_code": "reason_code must be one of " + str([r.value for r in ReasonCode]),
+            "design": "design must be one of " + str([d.value for d in Design]),
+            "action": "action must be execute, clarify or abstain",
+        }
+        out = []
+        for err in e.errors():
+            field = str(err["loc"][0]) if err["loc"] else "plan"
+            msg = err["msg"].removeprefix("Value error, ")
+            hint = hints.get(field, "")
+            if field == "plan" and "reason_code" in msg:
+                hint = (
+                    "if Study.roles gives the needed columns use action execute (no reason_code); otherwise add "
+                    + hints["reason_code"]
+                )
+            out.append(f"{field}: {msg}" + (f" -> {hint}" if hint else ""))
+        return out
 
 
 class LLMPlanner:
