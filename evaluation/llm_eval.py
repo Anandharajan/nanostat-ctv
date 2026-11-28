@@ -130,7 +130,9 @@ def score_traces(traces: Path, model_label: str | None = None) -> dict[str, Any]
     ans_rows = [r for r in rows if r["outcome"]["answerable"]]
     out: dict[str, Any] = {
         "model": model_label,
-        "prompt_version": PROMPT_VERSION,
+        # the version recorded in the traces, not the current constant (re-scoring old traces must not relabel them)
+        "prompt_version": ",".join(sorted({str(r.get("prompt_version")) for r in rows})) or None,
+        "prompt_hash": ",".join(sorted({str(r.get("prompt_hash")) for r in rows})) or None,
         "n_rows": len(rows),
         "trials": len(per_trial),
         "first_attempt_json_valid_rate": sum(first_ok) / len(first_ok) if first_ok else None,

@@ -65,3 +65,17 @@ def test_controller_feeds_field_level_errors_back():
     assert "Verifier feedback on your previous plan" in second
     assert "columns: unknown column roles" in second and "copy columns from Study.roles" in second
     assert "output was not a valid typed plan JSON" not in second
+
+
+def test_score_traces_reports_recorded_prompt_version(tmp_path):
+    import json
+    from pathlib import Path
+
+    from evaluation.llm_eval import score_traces
+
+    src = Path(__file__).resolve().parents[2] / "results" / "llm_b1" / "qwen25coder15b_dev_steps1.jsonl"
+    rows = src.read_text(encoding="utf-8").splitlines()[:3]
+    f = tmp_path / "t.jsonl"
+    f.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    r = score_traces(f)
+    assert r["prompt_version"] == json.loads(rows[0])["prompt_version"] == "typed-plan-v2"
