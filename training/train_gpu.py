@@ -159,6 +159,12 @@ def grpo(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    import os
+
+    # Kaggle's "GPU T4 x2" exposes two GPUs; current TRL refuses nn.DataParallel in a single process. One T4 is
+    # enough for LoRA on a 1.5B model, so use GPU 0 unless the caller chose devices explicitly. Must be set before
+    # torch is imported (it is imported lazily inside sft/grpo).
+    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
     ap = argparse.ArgumentParser()
     ap.add_argument("stage", choices=["sft", "grpo"])
     ap.add_argument("--data", default="data")
