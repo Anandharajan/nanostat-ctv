@@ -1,5 +1,10 @@
 # STATUS
 
+## 2026-11-28: cheating-agent demo panel; LLM baseline attempt
+- **Demo panel 4, "Watch an agent learn to cheat"** (`site/`). Two-step tabular agents (design, then method; textbook habit 4) are trained with the CTV reward at equal compute; only the broken-plan score differs. Measured in the page, seeds 1–5, 150 steps: broken plan at 0.0 or −0.1 gives 6–30% broken plans, validity 70–94% and an invalid rate that reads 0%. At −0.3 or −0.5: 0% broken, validity 93–100%. A one-step agent (one table entry per situation) does **not** show the hack; it needs the two-step structure (measured in Node first).
+- **LLM B1: still NOT RUN.** Magnitude CLI 0.3.7 is installed (maintainer-approved). It cannot run qwen2/qwen3. Qwen3.5-2B Q4_K_M was downloaded (approved substitute) but Magnitude refused to load it (needs 601 MB more, even at 32K context). Details: docs/LOCAL_LLM_VALIDATION.md.
+- Added `notebooks/03_llm_b1_colab.ipynb`: Qwen2.5-Coder-1.5B-Instruct served by vLLM inside a Colab T4 VM, B1 on the dev split (single shot and 3 steps), resumable traces, downloadable zip. Not yet run.
+
 ## 2026-11-28: v0.4.1, reward ordering fix (broken plans)
 - **Found:** `score_plan` scored broken plans (parse, verifier or execution failure) 0.0 > invalid −0.2, which is reward hacking. Fixed: `RewardWeights.malformed_penalty = -0.5`; SPEC §21.6. The R-F comparator is unchanged.
 - Ablation now reports a **broken-plan rate** (`TaskTable.broken`, `evaluate`).

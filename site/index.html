@@ -43,6 +43,14 @@
   a { color: var(--c1); }
   code { background: var(--grid); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
   footer { color: var(--muted); font-size: .85rem; margin-top: 28px; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .duo figure { margin: 0; } .duo figcaption { font-size: .92rem; margin-bottom: 4px; }
+  .duo canvas { height: 200px; }
+  .verdict { background: var(--hl); border-radius: 8px; padding: 10px 12px; margin: 12px 0; }
+  .takeaways { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 8px; font-size: .95rem; }
+  .takeaways ol { margin: 6px 0 10px; padding-left: 20px; } .takeaways li { margin: 4px 0; }
+  section.feature { border-color: var(--c2); }
+  @media (max-width: 680px) { .duo { grid-template-columns: 1fr; } }
   @media (max-width: 560px) { .bar-row { grid-template-columns: 110px 1fr 52px; } }
 </style>
 </head>
@@ -50,7 +58,8 @@
 <main>
   <h1>nanostat</h1>
   <p class="lede">Learn how today's AI agents are trained with <b>verifiable rewards</b> — on a problem small enough to see every number.
-    A tiny agent must pick a statistical test. Code runs the test. Rewards decide what it learns. Everything below runs in your browser.</p>
+    A tiny agent must pick a statistical test. Code runs the test. Rewards decide what it learns. Everything below runs in your browser.
+    Short on time? Jump to <a href="#cheat">panel 4: watch an agent learn to cheat</a>.</p>
 
   <section>
     <h2>1 · When do statistical tests lie?</h2>
@@ -95,6 +104,39 @@
       <span class="note">y = share of test tasks where the agent picks a defensible method</span></div>
     <canvas id="tr-canvas" width="880" height="240"></canvas>
     <p class="note" id="tr-final"></p>
+  </section>
+
+  <section class="feature" id="cheat">
+    <h2>4 · Watch an agent learn to cheat</h2>
+    <p class="sub">Two identical agents train on the same tasks, with the same CTV reward and the same compute. Each plans in two steps,
+      design first and then method, and starts with the textbook habit. The <b>only</b> difference is the score for a plan that cannot run.
+      Agent A gets −0.5, below an honest mistake (−0.2). For agent B, you choose.</p>
+    <div class="controls">
+      <label>agent B: a plan that cannot run scores <select id="ch-pen"><option value="0" selected>0.0 (the bug we shipped)</option><option value="-0.1">−0.1</option><option value="-0.3">−0.3</option><option value="-0.5">−0.5 (same as A)</option></select></label>
+      <label>seed <input id="ch-seed" type="number" value="1"></label>
+      <button id="ch-go">Train both agents</button>
+      <span class="note" id="ch-step"></span>
+    </div>
+    <div class="legend"><span><i style="background:var(--ok)"></i>valid method</span><span><i style="background:var(--bad)"></i>invalid method</span>
+      <span><i style="background:var(--c2)"></i>broken plan (dashed)</span><span class="note">share of 400 held-out test tasks</span></div>
+    <div class="duo">
+      <figure><figcaption><b>Agent A</b> (broken plan scores −0.5)</figcaption><canvas id="ch-a" width="420" height="200"></canvas><p class="note" id="ch-a-cap"></p></figure>
+      <figure><figcaption><b>Agent B</b> (broken plan score: your choice)</figcaption><canvas id="ch-b" width="420" height="200"></canvas><p class="note" id="ch-b-cap"></p></figure>
+    </div>
+    <p id="ch-final" class="verdict">Press <b>Train both agents</b>. It takes a few seconds.</p>
+    <div class="takeaways">
+      <b>Why this is the heart of the course</b>
+      <ol>
+        <li><b>An agent learns what you reward, not what you meant.</b> Nobody told agent B to cheat. Hiding was simply cheaper than being wrong.</li>
+        <li><b>Habits decide what RL can discover.</b> After fine-tuning, the agent commits to a design before it picks a method. Once the wrong design pays better, it stops exploring the right one.</li>
+        <li><b>Always measure something you did not reward.</b> B's invalid-method rate falls, which looks like success. Only the broken-plan rate and validity show the truth.</li>
+        <li><b>It happens in real research code.</b> NanoStat-CTV's own reward had this ordering until v0.4.1, and one training seed kept 22–29% hidden broken plans.
+          <a href="https://github.com/Anandharajan/nanostat-ctv/blob/main/docs/ABLATION_RESULTS.md">Read the correction</a>.</li>
+      </ol>
+      Measured in this panel over seeds 1–5 at 150 steps: when a broken plan scores 0.0 or −0.1, 6–30% of plans end up broken, validity reaches only 70–94%,
+      and the invalid-method rate reads a perfect 0%. At −0.3 or −0.5 there are no broken plans, and validity is 93–100%.
+      Above or below −0.2 is what matters, not the exact number.
+    </div>
   </section>
 
   <section>

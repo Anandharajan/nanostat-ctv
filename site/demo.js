@@ -141,6 +141,31 @@ function evaluate(pol, tasks) { let valid = 0, invalid = 0;
   for (const t of tasks) { const m = pol.greedy(observe(t)); if (t.A.includes(m) && DESIGN_OF[m] === t.kind) valid++; if (m in t.B) invalid++; }
   return { validity: valid / tasks.length, invalid: invalid / tasks.length }; }
 
+// ---------- 5. an agent that plans in two steps (design, then method), like the GPT in lesson 5 ----------
+// Each situation has a strong "textbook" habit for both steps (as after supervised fine-tuning). Choosing the wrong
+// design gives a plan that cannot run. Panel 4 asks: what should such a plan score?
+const DESIGNS = ["two_group", "paired", "correlation"], BY_DESIGN = { two_group: ["student_t", "welch_t", "mann_whitney"], paired: ["paired_t", "wilcoxon"], correlation: ["pearson", "spearman"] };
+const softmax = (l) => { const mx = Math.max(...Object.values(l)), e = Object.entries(l).map(([k, v]) => [k, Math.exp(v - mx)]), z = e.reduce((a, [, v]) => a + v, 0); return Object.fromEntries(e.map(([k, v]) => [k, v / z])); };
+const pickFrom = (p, R) => { let u = R.u(); for (const [k, v] of Object.entries(p)) { u -= v; if (u <= 0) return k; } return Object.keys(p)[0]; };
+const argmax = (p) => Object.keys(p).reduce((a, b) => (p[a] >= p[b] ? a : b));
+class TwoStep {
+  constructor(habit = 4) { this.h = habit; this.D = {}; this.M = {}; }
+  dl(s) { const k = s.split("|")[0]; return this.D[s] ||= Object.fromEntries(DESIGNS.map((d) => [d, d === k ? this.h : 0])); }
+  ml(s, d) { return this.M[s + "#" + d] ||= Object.fromEntries(BY_DESIGN[d].map((m) => [m, m === TEXTBOOK[d] ? this.h : 0])); }
+  sample(s, R) { const d = pickFrom(softmax(this.dl(s)), R); return [d, pickFrom(softmax(this.ml(s, d)), R)]; }
+  greedy(s) { const d = argmax(softmax(this.dl(s))); return [d, argmax(softmax(this.ml(s, d)))]; }
+  nudge(l, x, adv, lr) { const p = softmax(l); for (const k of Object.keys(l)) l[k] += lr * adv * ((k === x ? 1 : 0) - p[k]); }
+  update(s, [d, m], adv, lr) { this.nudge(this.dl(s), d, adv, lr); this.nudge(this.ml(s, d), m, adv, lr); }
+}
+const ctvWithBroken = (pen) => (t, d, m) => (execute(t, d, m, t.alt) == null ? pen : ctvReward(t, d, m, t.alt));
+function audit(pol, tasks) { let valid = 0, invalid = 0, broken = 0;
+  for (const t of tasks) { const [d, m] = pol.greedy(observe(t)); if (execute(t, d, m, t.alt) == null) broken++; else if (m in t.B) invalid++; else if (t.A.includes(m) && d === t.kind) valid++; }
+  return { valid: valid / tasks.length, invalid: invalid / tasks.length, broken: broken / tasks.length }; }
+function grpoStep2(pol, tasks, R, reward, group, lr) {
+  for (const t of tasks) { const s = observe(t), ps = Array.from({ length: group }, () => pol.sample(s, R));
+    const r = ps.map(([d, m]) => reward(t, d, m)), mu = mean(r), sd = Math.sqrt(r.reduce((a, v) => a + (v - mu) ** 2, 0) / r.length) + 1e-6;
+    ps.forEach((pl, i) => pol.update(s, pl, (r[i] - mu) / sd, lr)); } }
+
 // ---------- UI helpers ----------
 const $ = (id) => document.getElementById(id);
 function bars(el, items, line) { // items: [{label, value, cls}] values in [0,1]
@@ -207,12 +232,50 @@ function draw(arms, steps) {
     a.curve.forEach((v, i) => { const px = 36 + (W - 44) * i / steps, py = H - 20 - v * (H - 30); i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke(); }
 }
 
+// Panel 4: watch an agent learn to cheat. Two agents, same reward, same compute; only the score of a broken plan differs.
+let cheating = false;
+function runCheat() {
+  if (cheating) return; cheating = true; $("ch-go").disabled = true;
+  const seed = +$("ch-seed").value || 1, steps = 150, penB = +$("ch-pen").value, R0 = rng(seed);
+  const train = Array.from({ length: 1500 }, () => makeTask(R0)), RT = rng(seed * 1000 + 1), test = Array.from({ length: 400 }, () => makeTask(RT));
+  const arms = { A: { pol: new TwoStep(), R: rng(seed + 11), rw: ctvWithBroken(-0.5), hist: [] }, B: { pol: new TwoStep(), R: rng(seed + 11), rw: ctvWithBroken(penB), hist: [] } };
+  for (const a of Object.values(arms)) a.hist.push(audit(a.pol, test));
+  let step = 0;
+  function tick() {
+    for (let k = 0; k < 3 && step < steps; k++, step++) for (const a of Object.values(arms)) {
+      grpoStep2(a.pol, Array.from({ length: 8 }, () => train[a.R.int(0, train.length)]), a.R, a.rw, 8, 0.03); a.hist.push(audit(a.pol, test)); }
+    drawAudit("ch-a", arms.A.hist, steps); drawAudit("ch-b", arms.B.hist, steps);
+    $("ch-step").textContent = `step ${step}/${steps} · each agent generated ${step * 64} plans`;
+    if (step < steps) return requestAnimationFrame(tick);
+    cheating = false; $("ch-go").disabled = false;
+    const a = arms.A.hist.at(-1), b = arms.B.hist.at(-1), pc = (x) => `${(100 * x).toFixed(0)}%`;
+    $("ch-a-cap").textContent = `valid ${pc(a.valid)} · invalid ${pc(a.invalid)} · broken ${pc(a.broken)}`;
+    $("ch-b-cap").textContent = `valid ${pc(b.valid)} · invalid ${pc(b.invalid)} · broken ${pc(b.broken)}`;
+    $("ch-final").innerHTML = b.broken > a.broken + 0.02
+      ? `<b>Agent B learned to hide.</b> ${pc(b.broken)} of its plans cannot even run. Its invalid-method rate is ${pc(b.invalid)} (agent A: ${pc(a.invalid)}), ` +
+        `so a dashboard that counts only invalid methods would call B the better agent. Validity tells the truth: A ${pc(a.valid)}, B ${pc(b.valid)}. ` +
+        `Nothing in B's reward says "cheat". A broken plan simply cost less (${penB}) than an honest mistake (−0.2), and once B stopped trying the right design it never found the right method.`
+      : `<b>No hiding this time.</b> A broken plan scored ${penB}, which is ${penB < -0.2 ? "below" : "not above"} the −0.2 for an invalid method, so hiding never pays more than an honest mistake. ` +
+        `Try 0.0 or −0.1, or another seed.`;
+  }
+  tick();
+}
+function drawAudit(id, hist, steps) {
+  const c = $(id), g = c.getContext("2d"), W = c.width, H = c.height, css = getComputedStyle(document.documentElement);
+  g.clearRect(0, 0, W, H); g.lineWidth = 1; g.font = "11px system-ui";
+  for (let y = 0; y <= 1.0001; y += 0.25) { const py = H - 16 - y * (H - 26); g.strokeStyle = css.getPropertyValue("--grid"); g.beginPath(); g.moveTo(34, py); g.lineTo(W - 6, py); g.stroke();
+    g.fillStyle = css.getPropertyValue("--muted"); g.fillText(`${y * 100}%`, 0, py + 4); }
+  for (const [k, v] of [["valid", "--ok"], ["invalid", "--bad"], ["broken", "--c2"]]) { g.strokeStyle = css.getPropertyValue(v); g.lineWidth = 2.5; g.setLineDash(k === "broken" ? [6, 4] : []); g.beginPath();
+    hist.forEach((h, i) => { const px = 34 + (W - 40) * i / steps, py = H - 16 - h[k] * (H - 26); i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke(); }
+  g.setLineDash([]);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const opts = WORLDS.map((w) => `<option>${w}</option>`).join("");
   $("null-world").innerHTML = opts; $("rw-world").innerHTML = opts;
   $("null-world").value = "two_group/unequal_var"; $("rw-world").value = "two_group/outliers";
-  $("null-go").onclick = runNull; $("rw-go").onclick = runRewards; $("tr-go").onclick = runTrain;
+  $("null-go").onclick = runNull; $("rw-go").onclick = runRewards; $("tr-go").onclick = runTrain; $("ch-go").onclick = runCheat;
   runNull(); runRewards();
 });
 // exported for tests / curious readers in the console
-window.nanostat = { T, makeTask, execute, fisherReward, ctvReward, rng };
+window.nanostat = { T, makeTask, execute, fisherReward, ctvReward, rng, observe, TwoStep, ctvWithBroken, audit, grpoStep2 };

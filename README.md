@@ -8,7 +8,7 @@ NanoStat-CTV turns a research question + a CSV into a **typed analysis plan** (J
 
 ## Learn how it works: nanostat (no install needed)
 
-**[Try the in-browser demo and 9 lessons →](https://anandharajan.github.io/nanostat-ctv/)**
+**[Try the in-browser demo and 9 lessons →](https://anandharajan.github.io/nanostat-ctv/)**, including **[watch an agent learn to cheat its reward](https://anandharajan.github.io/nanostat-ctv/#cheat)**.
 
 A nanoGPT-style teaching track: one file ([`edu/nanostat.py`](edu/nanostat.py)) with hypothesis tests written from scratch, answer keys, typed plans, two verifiable rewards, a 104k-parameter GPT, SFT, GRPO and a compute-matched experiment. It includes a lesson that reproduces reward hacking on purpose. Run it in [Colab](https://colab.research.google.com/github/Anandharajan/nanostat-ctv/blob/main/edu/nanostat_colab.ipynb) or locally with `pip install numpy scipy torch`. See [edu/README.md](edu/README.md).
 

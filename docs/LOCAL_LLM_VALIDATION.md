@@ -4,6 +4,8 @@
 
 Magnitude is **inference only**. It runs the validation arms below; it does not train models (SFT/GRPO need a CUDA GPU; see `notebooks/02_train_t4.ipynb`).
 
+**Colab alternative (no local install):** [`notebooks/03_llm_b1_colab.ipynb`](https://colab.research.google.com/github/Anandharajan/nanostat-ctv/blob/main/notebooks/03_llm_b1_colab.ipynb). It serves the model with vLLM *inside* the Colab VM (still a local endpoint for NanoStat's client) and runs B1 on the dev split, with resumable traces you can download.
+
 ## 1. Install and serve (you run these)
 Install from the official releases page or installer (desktop app, or the CLI script on the Magnitude site), then:
 
@@ -41,5 +43,12 @@ Every run writes a resumable JSONL trace (`results/…`) with the raw model outp
 - The **policy pre-review is not a statistician sign-off**; `reviewed_by` stays PENDING until a named statistician signs.
 - Report every run, including failures; numbers are "measured on <model id>, Magnitude <version>, prompt <hash>".
 
-## Status
-Magnitude is **not installed** on the development machine at the time of writing, so **no LLM result exists yet (NOT RUN)**. The client, harness, P-Bench runner and pre-review are tested against a mock local OpenAI-compatible server (`tests/unit/test_llm_pbench_m4.py`).
+## Status (2026-11-28)
+**No LLM result exists yet (NOT RUN).** The client, harness, P-Bench runner and pre-review are tested against a mock local OpenAI-compatible server (`tests/unit/test_llm_pbench_m4.py`).
+
+What happened on the development machine (i7-8750H, 32 GB RAM, Quadro P1000 4 GB):
+- Magnitude CLI **0.3.7** installed with the maintainer's approval (official script, checksum and publisher signature verified; CLI only).
+- Magnitude 0.3.7 **does not run the `qwen2` or `qwen3` architectures** ("Magnitude doesn't run qwen2 yet"), so the planned backbone `Qwen2.5-Coder-1.5B-Instruct` and the 7B reference cannot be served by it. It runs Qwen3.5.
+- Its CUDA path needs an Ampere GPU or newer; the P1000 is used through Vulkan.
+- `unsloth/Qwen3.5-2B-GGUF` Q4_K_M was downloaded (listed as 1.95 GB including the vision projector). Magnitude **refused to load it**: "needs 601.0 MB more memory than this computer can provide, even for a 32K context". Windows reported 16.9 GB of RAM free at that moment, but Magnitude counted 7.9 GB. Its smallest context is 32K, and `models load` has no context option. Every quant of the model, down to 768 MB, was marked "too large" after its hardware assessment.
+- **Next:** run `notebooks/03_llm_b1_colab.ipynb` on a free Colab T4. It serves Qwen2.5-Coder-1.5B-Instruct with vLLM on 127.0.0.1 inside the VM and runs B1 on the dev split. Or retry Magnitude when it supports qwen2, or on a machine with more free memory.

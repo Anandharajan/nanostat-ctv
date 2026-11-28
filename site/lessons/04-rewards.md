@@ -65,6 +65,8 @@ Measured (seed 0, SFT on the textbook teacher, then CTV-GRPO with 12,800 rollout
 | −0.5 | 0 / 600 | 0.433 | 0.567 |
 | **0.0** | **240 / 600** | **0.028** | 0.572 |
 
+**Watch it happen in your browser:** [panel 4 of the demo](../index.html#cheat) trains two agents side by side and lets you choose the broken-plan score.
+
 Read the second row the way a careless paper would: *"the invalid-method rate fell from 43% to 3%!"* Nothing
 improved. Validity is the same. The policy learned to **hide** from the penalty by emitting plans that cannot run.
 A metric that only counts invalid methods cannot see that. Always report the broken-plan rate next to it.
