@@ -28,3 +28,10 @@ Read this before using NanoStat-CTV for anything that matters.
 - **Claim direction is parsed from wording** with a keyword list (`increase`, `reduce`, …). Unusual phrasing can be misread; the verifier will then flag a tail mismatch rather than silently proceed.
 - **Synthetic data only.** All benchmark tasks are simulated; real datasets have missingness patterns, clustering and measurement issues the factory does not model.
 - **Not for autonomous clinical or regulatory decisions.**
+
+## Open issue: reward ordering for broken plans (found 2026-11-28)
+
+In `training/reward_server.py::score_plan`, a plan that cannot be parsed, fails the verifier, or fails execution scores **0.0**. A plan that uses an invalid (B) method scores **-0.2**. A policy that cannot yet tell valid from invalid methods can therefore raise its reward by emitting broken plans. This is classic reward hacking, and the teaching track reproduces it (`edu/nanostat.py`, `MALFORMED`; lesson 4).
+
+- **Effect on published results: NOT MEASURED.** The CPU proxy learner cannot emit unparseable text, but its catalogue does contain actions that fail the verifier on some tasks (e.g. a paired design on unpaired data), and these score 0.0 through the real `score_plan`. The ablation reports validity and the invalid rate, but not the share of chosen actions that failed verification. Measure that share before relying on the invalid-rate result.
+- **Effect on LLM GRPO: likely.** A broken-plan reward below the invalid penalty (for example -0.5) should be set and tested before the first GPU run. Changing it now would change the reward definition after the ablation, so it is left as-is and recorded here.
