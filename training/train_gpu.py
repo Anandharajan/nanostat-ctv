@@ -21,29 +21,64 @@ def _cfg(path: str) -> dict:
     return yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
 
+def sft_records(path: str, limit: int | None = None) -> list[dict]:
+    """SFT rows in TRL's conversational prompt-completion format. Evaluation sends the prompt as a single user
+    chat message (nanostat.llm.OpenAICompatClient), and the server applies the model's chat template, so
+    training must use the same template. Otherwise the model is evaluated on a format it never saw."""
+    rows = [json.loads(x) for x in Path(path).read_text(encoding="utf-8").splitlines() if x.strip()]
+    rows = rows[:limit] if limit else rows
+    return [
+        {
+            "prompt": [{"role": "user", "content": r["prompt"]}],
+            "completion": [{"role": "assistant", "content": r["completion"]}],
+        }
+        for r in rows
+    ]
+
+
+def _load_fp32(model_id: str):  # type: ignore[no-untyped-def]
+    """T4 (sm_75) has no bf16: load fp32 master weights and train with fp16 autocast + LoRA."""
+    import torch
+    from transformers import AutoModelForCausalLM
+
+    try:
+        return AutoModelForCausalLM.from_pretrained(model_id, dtype=torch.float32)
+    except TypeError:  # older transformers
+        return AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float32)
+
+
 def sft(args: argparse.Namespace) -> None:
+    import time
+
+    import torch
     from datasets import Dataset
     from peft import LoraConfig
+    from transformers import AutoTokenizer
     from trl import SFTConfig, SFTTrainer
 
     cfg = _cfg(args.config)
-    rows = [json.loads(x) for x in Path(args.sft).read_text(encoding="utf-8").splitlines() if x.strip()]
-    rows = rows[: cfg["sft"]["examples"]]
-    ds = Dataset.from_list([{"prompt": r["prompt"], "completion": r["completion"]} for r in rows])
+    s_cfg = cfg["sft"]
+    ds = Dataset.from_list(sft_records(args.sft, s_cfg["examples"]))
     lora = cfg["lora"]
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
     trainer = SFTTrainer(
-        model=cfg["model_id"],
+        model=_load_fp32(cfg["model_id"]),
+        processing_class=AutoTokenizer.from_pretrained(cfg["model_id"]),
         train_dataset=ds,
         args=SFTConfig(
-            output_dir=args.out,
-            per_device_train_batch_size=cfg["sft"]["micro_batch"],
-            gradient_accumulation_steps=cfg["sft"]["grad_accum"],
-            learning_rate=cfg["sft"]["lr"],
-            num_train_epochs=cfg["sft"]["epochs"],
-            max_length=cfg["sft"]["max_seq"],
+            output_dir=str(out),
+            per_device_train_batch_size=s_cfg["micro_batch"],
+            gradient_accumulation_steps=s_cfg["grad_accum"],
+            learning_rate=s_cfg["lr"],
+            num_train_epochs=args.epochs or s_cfg["epochs"],
+            max_length=s_cfg["max_seq"],
+            completion_only_loss=True,
+            gradient_checkpointing=True,
             fp16=True,
-            logging_steps=10,
-            save_steps=100,
+            logging_steps=5,
+            save_steps=args.save_steps,
+            save_total_limit=2,
             seed=args.seed,
             report_to=[],
         ),
@@ -55,8 +90,21 @@ def sft(args: argparse.Namespace) -> None:
             task_type="CAUSAL_LM",
         ),
     )
-    trainer.train()
-    trainer.save_model(args.out)
+    resume = any(out.glob("checkpoint-*"))  # a Colab disconnect resumes instead of restarting
+    t0 = time.perf_counter()
+    trainer.train(resume_from_checkpoint=True if resume else None)
+    trainer.save_model(str(out / "adapter"))
+    log = {
+        "examples": len(ds),
+        "epochs": args.epochs or s_cfg["epochs"],
+        "max_seq": s_cfg["max_seq"],
+        "seconds": round(time.perf_counter() - t0, 1),
+        "resumed": resume,
+        "peak_reserved_gib": round(torch.cuda.max_memory_reserved() / 2**30, 2) if torch.cuda.is_available() else None,
+        "log_history": trainer.state.log_history,
+    }
+    (out / "train_log.json").write_text(json.dumps(log, indent=1), encoding="utf-8")
+    print(json.dumps({k: v for k, v in log.items() if k != "log_history"}))
 
 
 def grpo(args: argparse.Namespace) -> None:
@@ -120,6 +168,8 @@ def main() -> None:
     ap.add_argument("--config", default="configs/t4_ctv.yaml")
     ap.add_argument("--out", required=True)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--epochs", type=float, default=None, help="override sft.epochs")
+    ap.add_argument("--save-steps", type=int, default=25, help="checkpoint interval (resume after disconnects)")
     a = ap.parse_args()
     sft(a) if a.stage == "sft" else grpo(a)
 

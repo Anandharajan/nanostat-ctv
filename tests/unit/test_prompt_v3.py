@@ -79,3 +79,25 @@ def test_score_traces_reports_recorded_prompt_version(tmp_path):
     f.write_text("\n".join(rows) + "\n", encoding="utf-8")
     r = score_traces(f)
     assert r["prompt_version"] == json.loads(rows[0])["prompt_version"] == "typed-plan-v2"
+
+
+def test_sft_records_are_conversational_and_train_only(tmp_path):
+    """SFT must use the chat format the evaluator uses, and gold plans must come from the train split only."""
+    import json
+
+    from training.train_gpu import sft_records
+
+    f = tmp_path / "sft.jsonl"
+    f.write_text(
+        json.dumps({"task_id": "t1", "prompt": "P", "completion": '{"action":"abstain"}'}) + "\n", encoding="utf-8"
+    )
+    (r,) = sft_records(str(f))
+    assert r == {
+        "prompt": [{"role": "user", "content": "P"}],
+        "completion": [{"role": "assistant", "content": '{"action":"abstain"}'}],
+    }
+    import inspect
+
+    from training.sft_data import build_sft
+
+    assert inspect.signature(build_sft).parameters["split"].default == "train"

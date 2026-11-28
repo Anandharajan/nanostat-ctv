@@ -3,7 +3,8 @@ model_id: Qwen/Qwen2.5-Coder-1.5B-Instruct
 model_revision: PIN_AFTER_SMOKE
 quant: {type: nf4, double_quant: true, compute_dtype: float16}
 lora: {r: 8, alpha: 16, dropout: 0.05, targets: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]}
-sft: {max_seq: 1024, micro_batch: 1, grad_accum: 8, lr: 2.0e-4, epochs: 1, examples: 3000}
+# max_seq 2048: prompt v3 is ~1.3-1.6k tokens; 1024 would truncate the completion being learned (2026-11-28)
+sft: {max_seq: 2048, micro_batch: 1, grad_accum: 8, lr: 2.0e-4, epochs: 1, examples: 3000}
 grpo:
   group_size: 2            # per twin side; raise to 4 only after profiling
   pairs_per_update: 4
